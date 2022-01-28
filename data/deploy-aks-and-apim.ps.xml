@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--This az-command deploys AKS and APIM to Azure cloud
+//
+// Company: CNSC-CCSN 
+// Copyright: © CNSC-CCSN 2022. All rights reserved.
+// Date Created: 2022-01-27
+-->
+<az-commands>
+    <az-command type="az global variables">        
+        <az-param name="org" value="cnsc"/>         
+        <az-param name="app" value="svc"/>     
+        <az-param name="env" value="dev"/>  
+        <az-param name="instance" value="003"/>
+        <az-param name="resource-group" value="rg-{{org}}-{{app}}-{{env}}-{{instance}}"/>
+        <az-param name="location" value="canadaeast"/>        
+        <az-param name="keyvault" value="kv-{{org}}-{{app}}-{{env}}-{{instance}}"/>
+        <az-param name="vnet" value="vnet-{{env}}-{{location}}-{{instance}}"/>
+        <az-param name="snet-aks" value="snet-aks-{{env}}-{{location}}-{{instance}}"/>
+        <az-param name="snet-apim" value="snet-apim-{{env}}-{{location}}-{{instance}}"/>
+        <az-param name="sp-name" value="sp-aks-pim-{{env}}-{{instance}}"/>
+        <az-param name="acr-name" value="cr{{org}}{{app}}{{env}}{{instance}}"/>
+        <az-param name="sb-name" value="sb-{{org}}-{{app}}-{{env}}-{{instance}}"/>
+        <az-param name="cosmos-db-name" value="cosmos-{{org}}-{{app}}-{{env}}-{{instance}}"/>
+    </az-command>
+    <az-command type="az account set">
+        <az-param name="subscription" value="Visual Studio Enterprise Subscription"/>
+    </az-command>
+    <az-command type="az group create">
+        <az-param name="name" value="{{resource-group}}"/>
+        <az-param name="location" value="{{location}}"/>
+    </az-command>
+    <az-command type="az keyvault create">
+        <az-param name="name" value="{{keyvault}}"/>
+        <az-param name="resource-group" value="{{resource-group}}"/>
+        <az-param name="location" value="{{location}}"/>
+    </az-command>
+    <az-command type="az network vnet create">
+        <az-param name="name" value="{{vnet}}"/>
+        <az-param name="resource-group" value="{{resource-group}}"/>
+        <az-param name="location" value="{{location}}"/>
+        <az-param name="address-prefixes" value="10.10.0.0/16"/>
+    </az-command>
+    <az-command type="az network vnet subnet create">
+        <az-param name="name" value="{{snet-aks}}"/>
+        <az-param name="resource-group" value="{{resource-group}}"/>
+        <az-param name="vnet-name" value="{{vnet}}"/>
+        <az-param name="address-prefixes" value="10.10.1.0/24"/>
+    </az-command>
+    <az-command type="az network vnet subnet create">
+        <az-param name="name" value="{{snet-apim}}"/>
+        <az-param name="resource-group" value="{{resource-group}}"/>
+        <az-param name="vnet-name" value="{{vnet}}"/>
+        <az-param name="address-prefixes" value="10.10.2.0/24"/>
+    </az-command>
+    <az-command type="az keyvault secret set">
+        <az-param name="name" value="{{sp-name}}"/>
+        <az-param name="vault-name" value="{{keyvault}}"/>
+        <az-param name="value" value="{{sp-password}}">
+            <az-command type="az ad sp create-for-rbac">
+                <az-param name="name" value="{{sp-name}}"/>
+                <az-param name="role" value="Contributor"/>
+                <az-param name="scopes" value="{{vnet-id}}">
+                    <az-command type="az network vnet show">
+                        <az-param name="name" value="{{vnet}}"/>
+                        <az-param name="resource-group" value="{{resource-group}}"/>
+                        <az-param name="query" value="id"/>
+                        <az-param name="output" value="tsv"/>
+                    </az-command>
+                </az-param>
+            </az-command>
+        </az-param>
+    </az-command>
+    <az-command type="az acr create">
+        <az-param name="name" value="{{acr-name}}"/>
+        <az-param name="resource-group" value="{{resource-group}}"/>
+        <az-param name="location" value="{{location}}"/>
+        <az-param name="sku" value="Standard"/>
+    </az-command>
+    <az-command type="az aks create">
+        <az-param name="name" value="{{aks-name}}"/>
+        <az-param name="resource-group" value="{{resource-group}}"/>
+        <az-param name="location" value="{{location}}"/>
+        <az-param name="node-count" value="1"/>
+        <az-param name="service-principal" value="{{app-id}}"/>
+        <az-param name="client-secret" value="{{sp-password}}"/>
+        <az-param name="load-balancer-sku" value="standard"/>
+        <az-param name="kubernetes-version" value="{{aks-latest-version}}"/>
+        <az-param name="network-plugin" value="azure"/>
+        <az-param name="vnet-subnet-id" value="{{aks-subnet-id}}">
+            <az-return type="az network vnet subnet show">
+                <az-param name="resource-group" value="resource-group"/>
+                <az-param name="vnet-name" value="{{vnet}}"/>
+                <az-param name="name" value="snet-aks"/>
+                <az-param name="query" value="id"/>
+                <az-param name="output" value="tsv"/>
+            </az-return>
+        </az-param>
+        <az-param name="service-cidr" value="10.0.0.0/16"/>
+        <az-param name="dns-service-ip" value="10.0.0.10"/>
+        <az-param name="docker-bridge-address" value="172.17.0.1/16"/>
+        <az-param name="node-vm-size" value="Standard_B2s"/>
+        <az-param name="enable-addons" value="monitoring"/>
+        <az-param name="attach-acr" value="{{acr-name}}"/>
+        <az-param name="ssh-key-value" value="C:\Dev\Temp\aks-ssh-service.pub"/>
+    </az-command>
+    <az-command type="az servicebus namespace create">
+        <az-param name="name" value="{{sb-name}}"/>
+        <az-param name="resource-group" value="resource-group}}"/>
+        <az-param name="location" value="{{location}}"/>
+        <az-param name="sku" value="Standard"/>
+    </az-command>
+    <az-command type="az keyvault secret set">
+        <az-param name="name" value="azureServiceBusSettingsSharedAccessKey"/>
+        <az-param name="vault-name" value="{{keyvault}}"/>
+        <az-param name="value" value="{{sb-settings-shared-access-key}}">
+            <az-return type="az servicebus namespace authorization-rule keys list">
+                <az-param name="resource-group" value="{{resource-group}}"/>
+                <az-param name="name" value="RootManageSharedAccessKey"/>
+                <az-param name="namespace-name" value="{{sb-name}}"/>
+                <az-param name="query" value="[].primaryKey"/>
+                <az-param name="output" value="tsv"/>
+            </az-return>
+        </az-param>
+    </az-command>
+    <az-command type="az cosmosdb create">
+        <az-param name="name" value="cosmos-db-name}}"/>
+        <az-param name="resource-group" value="{{resource-group}}"/>
+        <az-param name="kind" value="MongoDB"/>
+        <az-param name="default-consistency-level" value="Eventual"/>
+        <az-param name="enable-automatic-failover" value="true"/>
+        <az-param name="server-version" value="4.0">
+        <az-param name="locations" value="regionName=Canada Central failoverPriority=0 isZoneRedundant=False">
+    </az-command>
+    <az-command type="az keyvault secret set">
+        <az-param name="name" value="eventStoreSettingsPassword"/>
+        <az-param name="vault-name" value="{{keyvault}}"/>
+        <az-param name="value" value="changeit"/>
+    </az-command>
+</az-commands>
+
