@@ -14,8 +14,9 @@ Class AzCommand {
     [String] $Type
     [String] $Return
     [AzParam[]] $Params
+    [String] $LogFile
 
-    AzCommand([String] $Type, [String] $Return, [AzParam[]] $Params) {
+    AzCommand([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) {
         $ObjectType = $This.GetType()
 
         If($ObjectType -eq [AzCommand]) {
@@ -25,10 +26,43 @@ Class AzCommand {
         $This.Type = $Type
         $This.Return = $Return
         $This.Params = $Params
+        $This.LogFile = $LogFile
+    }
+
+    [String] BuildCommand() {
+        $CommandStr = $This.Type
+
+        Foreach($Param in $This.Params) {
+            $CommandStr = $CommandStr + " ```r`n   --" + $Param.Name + " " + $Param.Value 
+        }
+
+        Return $CommandStr
     }
 
     [Hashtable] Execute([Hashtable] $Variables) {
-        Throw("Must Override Method")
+        For($i=0; $i -lt $This.Params.Length; $i++){
+            $Value =  $This.Params[$i].Value
+            $Success = $False
+            Do {                
+                $Result = [Regex]::Match($Value,  "\{{(.*?)\}}")
+                $Success = $Result.Success
+
+                If($Success -eq $False) {
+                    $This.Params[$i].Value = $Value
+                }
+                Else {
+                    $FoundName = $Result.Groups[1].Value
+                    $FoundValue = $Variables[$FoundName]
+
+                    $ReplaceName = $Result.Groups[0].Value
+
+                    $Value = $Value -Replace $ReplaceName, $FoundValue
+                }
+                
+            } While ($Success -eq $True)
+        }
+
+        Return $Variables
     }
 }
 
@@ -44,17 +78,77 @@ Class AzParam {
 
 
 Class AzFactory {
-    [AzCommand] CreateCommand([String] $Type, [String] $Return, [AzParam[]] $Params) {
+    [AzCommand] CreateCommand([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) {
         #Write-Output "$($Type)"
         $Command = $Null
-        $Args = @($Type, $Return, $Params)
+        $Arguments = @($Type, $Return, $Params, $LogFile)
 
         Switch ($Type){		
 			"az global variables" {
-                #$Params
-				$Command = (New-Object -TypeName "AzCommandGlobalVariables" -ArgumentList $Args)
+				$Command = (New-Object -TypeName "AzCommandGlobalVariables" -ArgumentList $Arguments)
 				Break
 			}
+            "az account set" {
+				$Command = (New-Object -TypeName "AzAccountSet" -ArgumentList $Arguments)
+				Break
+			}
+            "az group create" {
+				$Command = (New-Object -TypeName "AzGroupCreate" -ArgumentList $Arguments)
+				Break
+			}
+            "az keyvault create" {
+				$Command = (New-Object -TypeName "AzKeyvaultCreate" -ArgumentList $Arguments)
+				Break
+			}
+            "az network vnet create" {
+				$Command = (New-Object -TypeName "AzNetworkVnetCreate" -ArgumentList $Arguments)
+				Break
+			}
+            "az network vnet subnet create" {
+				$Command = (New-Object -TypeName "AzNetworkVenetSubnetCreate" -ArgumentList $Arguments)
+				Break
+			}
+            "az network vnet show" {
+				$Command = (New-Object -TypeName "AzNetworkVnetShow" -ArgumentList $Arguments)
+				Break
+			}
+            "az ad sp create-for-rbac" {
+				$Command = (New-Object -TypeName "AzAdSpCreateForRbac" -ArgumentList $Arguments)
+				Break
+			}
+            "az keyvault secret set" {
+				$Command = (New-Object -TypeName "AzKevaultSecretSet" -ArgumentList $Arguments)
+				Break
+			}
+            "az acr create" {
+				$Command = (New-Object -TypeName "AzAcrCreate" -ArgumentList $Arguments)
+				Break
+			}
+            "az network vnet subnet show" {
+                #$Params
+				$Command = (New-Object -TypeName "AzNetworkVnetSubnetShow" -ArgumentList $Arguments)
+				Break
+			}
+            "az aks create" {
+				$Command = (New-Object -TypeName "AzAksCreate" -ArgumentList $Arguments)
+				Break
+			}
+            "az servicebus namespace create" {
+				$Command = (New-Object -TypeName "AzServicebusNamespaceCreate" -ArgumentList $Arguments)
+				Break
+			}
+            "az servicebus namespace authorization-rule keys list" {
+				$Command = (New-Object -TypeName "AzServicebusNamespaceAuthorizationRuleKeysList" -ArgumentList $Arguments)
+				Break
+			}
+            "az cosmosdb create" {
+				$Command = (New-Object -TypeName "AzCosmosdbCreate" -ArgumentList $Arguments)
+				Break
+			}
+            Default: {
+                Throw("Command not supported")
+            }
+
         }
         Return $Command
     }
@@ -63,22 +157,21 @@ Class AzFactory {
 
 Class AzCommandGlobalVariables : AzCommand {
 
-    AzCommandGlobalVariables([String] $Type, [String] $Return, [AzParam[]] $Params) : base ($Type, $Return, $Params) {
+    AzCommandGlobalVariables([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Return, $Params, $LogFile) {
       
     }
 
     [Hashtable] Execute([Hashtable] $Variables) {
-        Foreach ($Param in $This.Params){
-            $Value = $Param.Value
+        For($i=0; $i -lt $This.Params.Length; $i++){
+            $Value = $This.Params[$i].Value
             $Success = $False
-            Do {
-                Write-Output "$($Value)"
-                
+            Do {                
                 $Result = [Regex]::Match($Value,  "\{{(.*?)\}}")
                 $Success = $Result.Success
 
                 If($Success -eq $False) {
-                    $Variables.Add($Param.Name, $Value)
+                    $Variables.Add($This.Params[$i].Name, $Value)
+                    $This.Params[$i].Value = $Value
                 }
                 Else {
                     $FoundName = $Result.Groups[1].Value
@@ -92,6 +185,172 @@ Class AzCommandGlobalVariables : AzCommand {
             } While ($Success -eq $True)
         }
 
+        $CommandStr = $This.BuildCommand()        
+
+        Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
+
+        Return $Variables
+    }
+}
+
+Class AzAccountSet : AzCommand {
+
+    AzAccountSet([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Return, $Params, $LogFile) {
+      
+    }
+
+    [Hashtable] Execute([Hashtable] $Variables) {
+        $Variables = $This.Execute($Variables)
+
+        $CommandStr = $This.BuildCommand()        
+
+        Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
+        
+        Invoke-Expression $CommandStr
+
+        Return $Variables
+    }
+}
+
+Class AzGroupCreate : AzCommand {
+
+    AzGroupCreate([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Return, $Params, $LogFile) {
+      
+    }
+
+    [Hashtable] Execute([Hashtable] $Variables) {
+        Return $Variables
+    }
+}
+
+Class AzKeyvaultCreate : AzCommand {
+
+    AzKeyvaultCreate([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Return, $Params, $LogFile) {
+      
+    }
+
+    [Hashtable] Execute([Hashtable] $Variables) {
+        Return $Variables
+    }
+}
+
+Class AzNetworkVnetCreate : AzCommand {
+
+    AzNetworkVnetCreate([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Return, $Params, $LogFile) {
+      
+    }
+
+    [Hashtable] Execute([Hashtable] $Variables) {
+        Return $Variables
+    }
+}
+
+Class AzNetworkVenetSubnetCreate : AzCommand {
+
+    AzNetworkVenetSubnetCreate([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Return, $Params, $LogFile) {
+      
+    }
+
+    [Hashtable] Execute([Hashtable] $Variables) {
+        Return $Variables
+    }
+}
+
+Class AzNetworkVnetShow : AzCommand {
+
+    AzNetworkVnetShow([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Return, $Params, $LogFile) {
+      
+    }
+
+    [Hashtable] Execute([Hashtable] $Variables) {
+        Return $Variables
+    }
+}
+
+Class AzAdSpCreateForRbac : AzCommand {
+
+    AzAdSpCreateForRbac([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Return, $Params, $LogFile) {
+      
+    }
+
+    [Hashtable] Execute([Hashtable] $Variables) {
+        Return $Variables
+    }
+}
+
+Class AzKevaultSecretSet : AzCommand {
+
+    AzKevaultSecretSet([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Return, $Params, $LogFile) {
+      
+    }
+
+    [Hashtable] Execute([Hashtable] $Variables) {
+        Return $Variables
+    }
+}
+
+Class AzAcrCreate : AzCommand {
+
+    AzAcrCreate([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Return, $Params, $LogFile) {
+      
+    }
+
+    [Hashtable] Execute([Hashtable] $Variables) {
+        Return $Variables
+    }
+}
+
+Class AzNetworkVnetSubnetShow : AzCommand {
+
+    AzNetworkVnetSubnetShow([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Return, $Params, $LogFile) {
+      
+    }
+
+    [Hashtable] Execute([Hashtable] $Variables) {
+        Return $Variables
+    }
+}
+
+Class AzAksCreate : AzCommand {
+
+    AzAksCreate([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Return, $Params, $LogFile) {
+      
+    }
+
+    [Hashtable] Execute([Hashtable] $Variables) {
+        Return $Variables
+    }
+}
+
+Class AzServicebusNamespaceCreate : AzCommand {
+
+    AzServicebusNamespaceCreate([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Return, $Params, $LogFile) {
+      
+    }
+
+    [Hashtable] Execute([Hashtable] $Variables) {
+        Return $Variables
+    }
+}
+
+Class AzServicebusNamespaceAuthorizationRuleKeysList : AzCommand {
+
+    AzServicebusNamespaceAuthorizationRuleKeysList([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Return, $Params, $LogFile) {
+      
+    }
+
+    [Hashtable] Execute([Hashtable] $Variables) {
+        Return $Variables
+    }
+}
+
+Class AzCosmosdbCreate : AzCommand {
+
+    AzCosmosdbCreate([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Return, $Params, $LogFile) {
+      
+    }
+
+    [Hashtable] Execute([Hashtable] $Variables) {
         Return $Variables
     }
 }
@@ -167,7 +426,7 @@ Foreach ($AzCommand in $XmlDoc.azCommands.azCommand){
         #$Params
         #Write-Output ""
 
-        $Command = $Factory.CreateCommand($Type, $Return, $Params)
+        $Command = $Factory.CreateCommand($Type, $Return, $Params, $LogFile)
         $Commands += $Command
 
         $Variables = $Command.Execute($Variables)
