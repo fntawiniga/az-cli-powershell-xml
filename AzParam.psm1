@@ -2,7 +2,7 @@ Class AzParam {
     [String] $Name
     [String] $Value
 
-    AzParam($Name, $Value) {
+    AzParam([String] $Name, [String] $Value) {
         $This.Name = $Name
         $This.Value = $Value
     }
