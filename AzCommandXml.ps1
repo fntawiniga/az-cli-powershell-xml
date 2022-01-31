@@ -30,16 +30,16 @@ Class AzCommand {
     }
 
     [String] BuildCommand() {
-        $CommandStr = $This.Type
+        $CommandStr = "`r`n" + $This.Type
 
         Foreach($Param in $This.Params) {
-            $CommandStr = $CommandStr + " ```r`n   --" + $Param.Name + " " + $Param.Value 
+            $CommandStr = $CommandStr + " ```r`n   --" + $Param.Name + " `"" + $Param.Value + "`""
         }
 
         Return $CommandStr
     }
 
-    [Hashtable] Execute([Hashtable] $Variables) {
+    [Void] InstanciateParams($Variables) {
         For($i=0; $i -lt $This.Params.Length; $i++){
             $Value =  $This.Params[$i].Value
             $Success = $False
@@ -61,7 +61,11 @@ Class AzCommand {
                 
             } While ($Success -eq $True)
         }
+    }
 
+    [Hashtable] Execute([Hashtable] $Variables) {
+        
+        Throw("Method must be inherited")
         Return $Variables
     }
 }
@@ -200,7 +204,7 @@ Class AzAccountSet : AzCommand {
     }
 
     [Hashtable] Execute([Hashtable] $Variables) {
-        $Variables = $This.Execute($Variables)
+        $This.InstanciateParams($Variables)
 
         $CommandStr = $This.BuildCommand()        
 
