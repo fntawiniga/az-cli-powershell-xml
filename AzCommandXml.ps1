@@ -39,7 +39,7 @@ Class AzCommand {
         Return $CommandStr
     }
 
-    [Void] InstanciateParams($Variables) {
+    [Void] ReplaceParamsTokens($Variables) {
         For($i=0; $i -lt $This.Params.Length; $i++){
             $Value =  $This.Params[$i].Value
             $Success = $False
@@ -63,6 +63,25 @@ Class AzCommand {
         }
     }
 
+    [String] FindParamValueByName([String] $Name) {
+        $Value = ""
+        $Found  = $False
+
+        Foreach($Param in $This.Params) {
+            If($Param.Name -eq $Name) {
+                $Value = $Param.Value
+                $Found = $True
+                Break
+            }
+        }
+
+        If($Found -eq $False) {
+            Throw("Parameter By $($Name) Name Does Not Exist")
+        }
+
+        Return $Value
+    }
+
     [Hashtable] Execute([Hashtable] $Variables) {
         
         Throw("Method must be inherited")
@@ -83,7 +102,6 @@ Class AzParam {
 
 Class AzFactory {
     [AzCommand] CreateCommand([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) {
-        #Write-Output "$($Type)"
         $Command = $Null
         $Arguments = @($Type, $Return, $Params, $LogFile)
 
@@ -129,7 +147,6 @@ Class AzFactory {
 				Break
 			}
             "az network vnet subnet show" {
-                #$Params
 				$Command = (New-Object -TypeName "AzNetworkVnetSubnetShow" -ArgumentList $Arguments)
 				Break
 			}
@@ -204,7 +221,7 @@ Class AzAccountSet : AzCommand {
     }
 
     [Hashtable] Execute([Hashtable] $Variables) {
-        $This.InstanciateParams($Variables)
+        $This.ReplaceParamsTokens($Variables)
 
         $CommandStr = $This.BuildCommand()        
 
@@ -223,6 +240,32 @@ Class AzGroupCreate : AzCommand {
     }
 
     [Hashtable] Execute([Hashtable] $Variables) {
+        $This.ReplaceParamsTokens($Variables)
+
+        $ResourceGroup = $This.FindParamValueByName("name")
+
+        $CheckStr = "`r`n`$Check = `$(az group exists"
+        $CheckStr = $CheckStr + " ```r`n   --name `"" + $ResourceGroup + "`")"
+
+        Write-Log -Message $CheckStr -LogFile $This.LogFile -Color "green"
+
+        $Check = $False
+        Invoke-Expression $CheckStr
+
+        If ($Check -eq $True) {
+            Write-Log -Message "Resource Group $($ResourceGroup) already exists" -LogFile $This.LogFile -Color "yellow"
+        }
+        Else {        
+            Write-Log -Message "Creating Resource Group $($ResourceGroup) ..." -LogFile $This.LogFile -Color "green"
+            $CommandStr = $This.BuildCommand()        
+
+            Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
+        
+            Invoke-Expression $CommandStr
+
+            Write-Log -Message "Resource Group $($ResourceGroup) has been create" -LogFile $This.LogFile -Color "green"
+        }  
+    
         Return $Variables
     }
 }
@@ -234,6 +277,37 @@ Class AzKeyvaultCreate : AzCommand {
     }
 
     [Hashtable] Execute([Hashtable] $Variables) {
+        $This.ReplaceParamsTokens($Variables)
+        
+        $KeyVault = $This.FindParamValueByName("name")
+        $ResourceGroup = $This.FindParamValueByName("resource-group")
+
+        $CheckStr = "`r`n`$Name = `$(az keyvault show"
+        $CheckStr = $CheckStr + " ```r`n   --name `"" + $KeyVault + "`""
+        $CheckStr = $CheckStr + " ```r`n   --resource-group `"" + $ResourceGroup + "`""
+        $CheckStr = $CheckStr + " ```r`n   --query name"
+        $CheckStr = $CheckStr + " ```r`n   --output tsv)"
+
+        Write-Log -Message $CheckStr -LogFile $This.LogFile -Color "green"
+
+        $Name = $Null
+        Invoke-Expression $CheckStr
+
+        If ($Name -eq $KeyVault) {
+            Write-Log -Message "Azure KeyVault $KeyVault already exists" -LogFile $This.LogFile -Color "yellow"
+        }
+        Else {        
+            Write-Log -Message "Creating Azure KeyVault $KeyVault ..." -LogFile $This.LogFile -Color "green"
+
+            $CommandStr = $This.BuildCommand()        
+
+            Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
+        
+            Invoke-Expression $CommandStr
+
+            Write-Log -Message "Azure KeyVault $KeyVault has been created" -LogFile $This.LogFile -Color "green"
+        }  
+
         Return $Variables
     }
 }
@@ -245,6 +319,37 @@ Class AzNetworkVnetCreate : AzCommand {
     }
 
     [Hashtable] Execute([Hashtable] $Variables) {
+        $This.ReplaceParamsTokens($Variables)
+        
+        $VnetName = $This.FindParamValueByName("name")
+        $ResourceGroup = $This.FindParamValueByName("resource-group")
+
+        $CheckStr = "`r`n`$Name = `$(az network vnet show"
+        $CheckStr = $CheckStr + " ```r`n   --name `"" + $VnetName + "`""
+        $CheckStr = $CheckStr + " ```r`n   --resource-group `"" + $ResourceGroup + "`""
+        $CheckStr = $CheckStr + " ```r`n   --query name"
+        $CheckStr = $CheckStr + " ```r`n   --output tsv)"
+
+        Write-Log -Message $CheckStr -LogFile $This.LogFile -Color "green"
+
+        $Name = $Null
+        Invoke-Expression $CheckStr
+
+        If ($Name -eq $VnetName) {
+            Write-Log -Message "Azure Vnet $VnetName already exists" -LogFile $This.LogFile -Color "yellow"
+        }
+        Else {        
+            Write-Log -Message "Creating Azure Vnet $VnetName ..." -LogFile $This.LogFile -Color "green"
+
+            $CommandStr = $This.BuildCommand()        
+
+            Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
+        
+            Invoke-Expression $CommandStr
+
+            Write-Log -Message "Azure Vnet $VnetName has been created" -LogFile $This.LogFile -Color "green"
+        }  
+
         Return $Variables
     }
 }
@@ -256,6 +361,39 @@ Class AzNetworkVenetSubnetCreate : AzCommand {
     }
 
     [Hashtable] Execute([Hashtable] $Variables) {
+        $This.ReplaceParamsTokens($Variables)
+        
+        $SubnetName = $This.FindParamValueByName("name")
+        $ResourceGroup = $This.FindParamValueByName("resource-group")
+        $VnetName = $This.FindParamValueByName("vnet-name")
+
+        $CheckStr = "`r`n`$Name = `$(az network vnet subnet show"
+        $CheckStr = $CheckStr + " ```r`n   --name `"" + $SubnetName + "`""
+        $CheckStr = $CheckStr + " ```r`n   --resource-group `"" + $ResourceGroup + "`""
+        $CheckStr = $CheckStr + " ```r`n   --vnet-name `"" + $VnetName + "`""
+        $CheckStr = $CheckStr + " ```r`n   --query name"
+        $CheckStr = $CheckStr + " ```r`n   --output tsv)"
+
+        Write-Log -Message $CheckStr -LogFile $This.LogFile -Color "green"
+
+        $Name = $Null
+        Invoke-Expression $CheckStr
+
+        If ($Name -eq $SubnetName) {
+            Write-Log -Message "Azure Vnet Subnet $SubnetName already exists" -LogFile $This.LogFile -Color "yellow"
+        }
+        Else {        
+            Write-Log -Message "Creating Azure Vnet Subnet $SubnetName ..." -LogFile $This.LogFile -Color "green"
+
+            $CommandStr = $This.BuildCommand()        
+
+            Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
+        
+            Invoke-Expression $CommandStr
+
+            Write-Log -Message "Azure Vnet Subnet $SubnetName has been created" -LogFile $This.LogFile -Color "green"
+        }  
+
         Return $Variables
     }
 }
@@ -381,7 +519,7 @@ Function Write-Log(){
 	$Msg = $Message
 	If($AddDate) {		
 		$Tempo = Get-Date -format "yyyy-MM-dd hh:mm:ss"
-		$Msg = "$Tempo`t$Message"
+		$Msg = "`r`n$Tempo`t$Message"
 	}
 
 
@@ -448,10 +586,6 @@ Foreach ($AzCommand in $XmlDoc.azCommands.azCommand){
             Break
         }
     }
-}
-
-Foreach ($Variable in $Variables){
-    Write-Output "$($Variable)"
 }
 
 If($ErrorOccured) {
