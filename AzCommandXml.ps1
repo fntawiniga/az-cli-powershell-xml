@@ -6,17 +6,18 @@ param
 (
     #required params
 	[String]$OutputFolder = "C:\Temp", #$(throw "Output folder (-OutputFolder) Required"),
-	[String]$Script = ".\data\deploy-aks-and-apim.ps.xml", # $(throw "XML Script (-Script) Required"),
+	[String]$Script = ".\data\deploy-aks-and-apim2.ps.xml", # $(throw "XML Script (-Script) Required"),
 	[String]$StopOnError = $True
 )
 
 Class AzCommand {
     [String] $Type
-    [String] $Return
+    [String] $Name
+    [String] $Output
     [AzParam[]] $Params
     [String] $LogFile
 
-    AzCommand([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) {
+    AzCommand([String] $Type, [String] $Name, [String] $Output, [AzParam[]] $Params, [String] $LogFile) {
         $ObjectType = $This.GetType()
 
         If($ObjectType -eq [AzCommand]) {
@@ -24,13 +25,14 @@ Class AzCommand {
         }
 
         $This.Type = $Type
-        $This.Return = $Return
+        $This.Name = $Name
+        $This.Output = $Output
         $This.Params = $Params
         $This.LogFile = $LogFile
     }
 
     [String] BuildCommand() {
-        $CommandStr = "`r`n" + $This.Type
+        $CommandStr = "`r`n" + $This.Name
 
         Foreach($Param in $This.Params) {
             $CommandStr = $CommandStr + " ```r`n   --" + $Param.Name + " `"" + $Param.Value + "`""
@@ -101,75 +103,67 @@ Class AzParam {
 
 
 Class AzFactory {
-    [AzCommand] CreateCommand([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) {
+    [AzCommand] CreateCommand([String] $Type, [String] $Name, [String] $Output, [AzParam[]] $Params, [String] $LogFile) {
         $Command = $Null
-        $Arguments = @($Type, $Return, $Params, $LogFile)
+        $Arguments = @($Type, $Name, $Output, $Params, $LogFile)
 
-        Switch ($Type){		
-			"az global variables" {
-				$Command = (New-Object -TypeName "AzCommandGlobalVariables" -ArgumentList $Arguments)
-				Break
-			}
-            "az account set" {
-				$Command = (New-Object -TypeName "AzAccountSet" -ArgumentList $Arguments)
-				Break
-			}
-            "az group create" {
-				$Command = (New-Object -TypeName "AzGroupCreate" -ArgumentList $Arguments)
-				Break
-			}
-            "az keyvault create" {
-				$Command = (New-Object -TypeName "AzKeyvaultCreate" -ArgumentList $Arguments)
-				Break
-			}
-            "az network vnet create" {
-				$Command = (New-Object -TypeName "AzNetworkVnetCreate" -ArgumentList $Arguments)
-				Break
-			}
-            "az network vnet subnet create" {
-				$Command = (New-Object -TypeName "AzNetworkVnetSubnetCreate" -ArgumentList $Arguments)
-				Break
-			}
-            "az network vnet show" {
-				$Command = (New-Object -TypeName "AzNetworkVnetShow" -ArgumentList $Arguments)
-				Break
-			}
-            "az ad sp create-for-rbac" {
-				$Command = (New-Object -TypeName "AzAdSpCreateForRbac" -ArgumentList $Arguments)
-				Break
-			}
-            "az keyvault secret set" {
-				$Command = (New-Object -TypeName "AzKevaultSecretSet" -ArgumentList $Arguments)
-				Break
-			}
-            "az acr create" {
-				$Command = (New-Object -TypeName "AzAcrCreate" -ArgumentList $Arguments)
-				Break
-			}
-            "az network vnet subnet show" {
-				$Command = (New-Object -TypeName "AzNetworkVnetSubnetShow" -ArgumentList $Arguments)
-				Break
-			}
-            "az aks create" {
-				$Command = (New-Object -TypeName "AzAksCreate" -ArgumentList $Arguments)
-				Break
-			}
-            "az servicebus namespace create" {
-				$Command = (New-Object -TypeName "AzServicebusNamespaceCreate" -ArgumentList $Arguments)
-				Break
-			}
-            "az servicebus namespace authorization-rule keys list" {
-				$Command = (New-Object -TypeName "AzServicebusNamespaceAuthorizationRuleKeysList" -ArgumentList $Arguments)
-				Break
-			}
-            "az cosmosdb create" {
-				$Command = (New-Object -TypeName "AzCosmosdbCreate" -ArgumentList $Arguments)
-				Break
-			}
-            Default: {
-                Throw("Command not supported")
+        If ($Type -eq "execute" -or $Type -eq "execute-query") {
+            Switch ($Name){		
+                "az global variables" {
+                    $Command = (New-Object -TypeName "AzCommandGlobalVariables" -ArgumentList $Arguments)
+                    Break
+                }
+                "az account set" {
+                    $Command = (New-Object -TypeName "AzCommandAccountSet" -ArgumentList $Arguments)
+                    Break
+                }
+                "az group create" {
+                    $Command = (New-Object -TypeName "AzCommandGroupCreate" -ArgumentList $Arguments)
+                    Break
+                }
+                "az keyvault create" {
+                    $Command = (New-Object -TypeName "AzCommandKeyvaultCreate" -ArgumentList $Arguments)
+                    Break
+                }
+                "az network vnet create" {
+                    $Command = (New-Object -TypeName "AzCommandNetworkVnetCreate" -ArgumentList $Arguments)
+                    Break
+                }
+                "az network vnet subnet create" {
+                    $Command = (New-Object -TypeName "AzCommandNetworkVnetSubnetCreate" -ArgumentList $Arguments)
+                    Break
+                }
+                "az ad sp create-for-rbac" {
+                    $Command = (New-Object -TypeName "AzCommandAdSpCreateForRbac" -ArgumentList $Arguments)
+                    Break
+                }
+                "az keyvault secret set" {
+                    $Command = (New-Object -TypeName "AzCommandKevaultSecretSet" -ArgumentList $Arguments)
+                    Break
+                }
+                "az acr create" {
+                    $Command = (New-Object -TypeName "AzCommandAcrCreate" -ArgumentList $Arguments)
+                    Break
+                }
+                "az aks create" {
+                    $Command = (New-Object -TypeName "AzCommandAksCreate" -ArgumentList $Arguments)
+                    Break
+                }
+                "az servicebus namespace create" {
+                    $Command = (New-Object -TypeName "AzCommandServicebusNamespaceCreate" -ArgumentList $Arguments)
+                    Break
+                }
+                "az cosmosdb create" {
+                    $Command = (New-Object -TypeName "AzCommandCosmosdbCreate" -ArgumentList $Arguments)
+                    Break
+                }
+                Default: {
+                    Throw("Command not supported")
+                }
             }
-
+        }
+        Else { #query         
+            $Command = (New-Object -TypeName "AzCommandQuery" -ArgumentList $Arguments)
         }
         Return $Command
     }
@@ -178,7 +172,7 @@ Class AzFactory {
 
 Class AzCommandGlobalVariables : AzCommand {
 
-    AzCommandGlobalVariables([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Return, $Params, $LogFile) {
+    AzCommandGlobalVariables([String] $Type, [String] $Name, [String] $Output, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Name, $Output, $Params, $LogFile) {
       
     }
 
@@ -214,29 +208,36 @@ Class AzCommandGlobalVariables : AzCommand {
     }
 }
 
-Class AzAccountSet : AzCommand {
+Class AzCommandAccountSet : AzCommand {
 
-    AzAccountSet([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Return, $Params, $LogFile) {
+    AzCommandAccountSet([String] $Type, [String] $Name, [String] $Output, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Name, $Output, $Params, $LogFile) {
       
     }
 
     [Hashtable] Execute([Hashtable] $Variables) {
         $This.ReplaceParamsTokens($Variables)
 
-        $CommandStr = $This.BuildCommand()        
+        $CommandStr = $This.BuildCommand()      
 
         Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
         
-        Invoke-Expression $CommandStr
+        Invoke-Expression $CommandStr      
+        
+        $LastExitCode
+        If (!$?) {
+            Throw("Error setting subscription")
+        }
+        Else {
+            Write-Log -Message "Azure Subscription has been successfully set" -LogFile $This.LogFile -Color "green"
+        }    
 
         Return $Variables
     }
 }
 
-Class AzGroupCreate : AzCommand {
+Class AzCommandGroupCreate : AzCommand {
 
-    AzGroupCreate([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Return, $Params, $LogFile) {
-      
+    AzCommandGroupCreate([String] $Type, [String] $Name, [String] $Output, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Name, $Output, $Params, $LogFile) {
     }
 
     [Hashtable] Execute([Hashtable] $Variables) {
@@ -263,16 +264,22 @@ Class AzGroupCreate : AzCommand {
         
             Invoke-Expression $CommandStr
 
-            Write-Log -Message "Resource Group $($ResourceGroup) has been create" -LogFile $This.LogFile -Color "green"
+            $LastExitCode
+            If (!$?) {
+                Throw("Error creating resource group $($ResourceGroup)")
+            }
+            Else {
+                Write-Log -Message "Resource Group $($ResourceGroup) has been create" -LogFile $This.LogFile -Color "green"
+            }
         }  
     
         Return $Variables
     }
 }
 
-Class AzKeyvaultCreate : AzCommand {
+Class AzCommandKeyvaultCreate : AzCommand {
 
-    AzKeyvaultCreate([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Return, $Params, $LogFile) {
+    AzCommandKeyvaultCreate([String] $Type, [String] $Name, [String] $Output, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Name, $Output, $Params, $LogFile) {
       
     }
 
@@ -305,16 +312,22 @@ Class AzKeyvaultCreate : AzCommand {
         
             Invoke-Expression $CommandStr
 
-            Write-Log -Message "Azure KeyVault $KeyVault has been created" -LogFile $This.LogFile -Color "green"
+            $LastExitCode
+            If (!$?) {
+                Throw("Error creating Azure KeyVault $($KeyVault)")
+            }
+            Else {
+                Write-Log -Message "Azure KeyVault $($KeyVault) has been successfully created" -LogFile $This.LogFile -Color "green"
+            }            
         }  
 
         Return $Variables
     }
 }
 
-Class AzNetworkVnetCreate : AzCommand {
+Class AzCommandNetworkVnetCreate : AzCommand {
 
-    AzNetworkVnetCreate([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Return, $Params, $LogFile) {
+    AzCommandNetworkVnetCreate([String] $Type, [String] $Name, [String] $Output, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Name, $Output, $Params, $LogFile) {
       
     }
 
@@ -347,17 +360,22 @@ Class AzNetworkVnetCreate : AzCommand {
         
             Invoke-Expression $CommandStr
 
-            Write-Log -Message "Azure Vnet $VnetName has been created" -LogFile $This.LogFile -Color "green"
+            $LastExitCode
+            If (!$?) {
+                Throw("Error creating Azure Vnet $($VnetName)")
+            }
+            Else {
+                Write-Log -Message "Azure Vnet $($VnetName) has been successfully created" -LogFile $This.LogFile -Color "green"
+            }            
         }  
 
         Return $Variables
     }
 }
 
-Class AzNetworkVnetSubnetCreate : AzCommand {
+Class AzCommandNetworkVnetSubnetCreate : AzCommand {
 
-    AzNetworkVnetSubnetCreate([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Return, $Params, $LogFile) {
-      
+    AzCommandNetworkVnetSubnetCreate([String] $Type, [String] $Name, [String] $Output, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Name, $Output, $Params, $LogFile) {     
     }
 
     [Hashtable] Execute([Hashtable] $Variables) {
@@ -391,47 +409,22 @@ Class AzNetworkVnetSubnetCreate : AzCommand {
         
             Invoke-Expression $CommandStr
 
-            Write-Log -Message "Azure Vnet Subnet $SubnetName has been created" -LogFile $This.LogFile -Color "green"
+            $LastExitCode
+            If (!$?) {
+                Throw("Error creating Azure Vnet Subnet $($SubnetName)")
+            }
+            Else {
+                Write-Log -Message "Azure Vnet Subnet $($SubnetName) has been successfully created" -LogFile $This.LogFile -Color "green"
+            }            
         }  
 
         Return $Variables
     }
 }
 
-Class AzNetworkVnetShow : AzCommand {
+Class AzCommandAdSpCreateForRbac : AzCommand {
 
-    AzNetworkVnetShow([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Return, $Params, $LogFile) {
-      
-    }
-
-    [Hashtable] Execute([Hashtable] $Variables) {
-        $This.ReplaceParamsTokens($Variables)
-
-        $Value = $This.Return
-
-        $Success = $False            
-        $Result = [Regex]::Match($Value,  "\{{(.*?)\}}")
-        $Success = $Result.Success
-
-        If($Success -eq $True) {
-            $Output = $Null
-            $CommandStr = "`r`n`$Output = `$(" + $This.BuildCommand() + ")"      
-
-            Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
-            
-            Invoke-Expression $CommandStr
-            
-            $FoundName = $Result.Groups[1].Value
-            $Variables.Add( $FoundName, $Output)
-        }                
-
-        Return $Variables
-    }
-}
-
-Class AzAdSpCreateForRbac : AzCommand {
-
-    AzAdSpCreateForRbac([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Return, $Params, $LogFile) {
+    AzCommandAdSpCreateForRbac([String] $Type, [String] $Name, [String] $Output, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Name, $Output, $Params, $LogFile) {
       
     }
 
@@ -440,10 +433,9 @@ Class AzAdSpCreateForRbac : AzCommand {
     }
 }
 
-Class AzKevaultSecretSet : AzCommand {
+Class AzCommandKevaultSecretSet : AzCommand {
 
-    AzKevaultSecretSet([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Return, $Params, $LogFile) {
-      
+    AzCommandKevaultSecretSet([String] $Type, [String] $Name, [String] $Output, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Name, $Output, $Params, $LogFile) { 
     }
 
     [Hashtable] Execute([Hashtable] $Variables) {$This.ReplaceParamsTokens($Variables)
@@ -453,13 +445,21 @@ Class AzKevaultSecretSet : AzCommand {
         
         Invoke-Expression $CommandStr
 
+        $LastExitCode
+        If (!$?) {
+            Throw("Error setting Keyvault Secret")
+        }
+        Else {
+            Write-Log -Message "Azure Keyvault Secret has been successfully set" -LogFile $This.LogFile -Color "green"
+        }  
+
         Return $Variables
     }
 }
 
-Class AzAcrCreate : AzCommand {
+Class AzCommandAcrCreate : AzCommand {
 
-    AzAcrCreate([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Return, $Params, $LogFile) {
+    AzCommandAcrCreate([String] $Type, [String] $Name, [String] $Output, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Name, $Output, $Params, $LogFile) {
       
     }
 
@@ -492,90 +492,74 @@ Class AzAcrCreate : AzCommand {
         
             Invoke-Expression $CommandStr
 
-            Write-Log -Message "Azure Container Registry $AcrName has been created" -LogFile $This.LogFile -Color "green"
+            $LastExitCode
+            If (!$?) {
+                Throw("Error creating Azure Container Registry $($AcrName)")
+            }
+            Else {
+                Write-Log -Message "Azure Container Registry $($AcrName) has been successfully created" -LogFile $This.LogFile -Color "green"
+            }              
         }  
 
         Return $Variables
     }
 }
 
-Class AzNetworkVnetSubnetShow : AzCommand {
+Class AzCommandAksCreate : AzCommand {
 
-    AzNetworkVnetSubnetShow([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Return, $Params, $LogFile) {
-      
+    AzCommandAksCreate([String] $Type, [String] $Name, [String] $Output, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Name, $Output, $Params, $LogFile) {
     }
 
     [Hashtable] Execute([Hashtable] $Variables) {
-        $This.ReplaceParamsTokens($Variables)
-
-        $Value = $This.Return
-
-        $Success = $False            
-        $Result = [Regex]::Match($Value,  "\{{(.*?)\}}")
-        $Success = $Result.Success
-
-        If($Success -eq $True) {
-            $Output = $Null
-            $CommandStr = "`r`n`$Output = `$(" + $This.BuildCommand() + ")"      
-
-            Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
+        Try {
+            $This.ReplaceParamsTokens($Variables)
             
-            Invoke-Expression $CommandStr
+            $AksName = $This.FindParamValueByName("name")
+            $ResourceGroup = $This.FindParamValueByName("resource-group")
+
+            $CheckStr = "`r`n`$Name = `$(az aks show"
+            $CheckStr = $CheckStr + " ```r`n   --name `"" + $AksName + "`""
+            $CheckStr = $CheckStr + " ```r`n   --resource-group `"" + $ResourceGroup + "`""
+            $CheckStr = $CheckStr + " ```r`n   --query name"
+            $CheckStr = $CheckStr + " ```r`n   --output tsv)"
+
+            Write-Log -Message $CheckStr -LogFile $This.LogFile -Color "green"
+
+            $Name = $Null
+            Invoke-Expression $CheckStr
+
+            If ($Name -eq $AksName) {
+                Write-Log -Message "Azure Kubernates Service $AksName already exists" -LogFile $This.LogFile -Color "yellow"
+            }
+            Else {        
+                Write-Log -Message "Creating Azure Kubernates Service $AksName ..." -LogFile $This.LogFile -Color "green"
+
+                $CommandStr = $This.BuildCommand()        
+
+                Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
             
-            $FoundName = $Result.Groups[1].Value
-            $Variables.Add( $FoundName, $Output)
-        }                
+                Invoke-Expression $CommandStr
 
-        Return $Variables
-    }
-}
-
-Class AzAksCreate : AzCommand {
-
-    AzAksCreate([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Return, $Params, $LogFile) {
-      
-    }
-
-    [Hashtable] Execute([Hashtable] $Variables) {
-        $This.ReplaceParamsTokens($Variables)
-        
-        $AksName = $This.FindParamValueByName("name")
-        $ResourceGroup = $This.FindParamValueByName("resource-group")
-
-        $CheckStr = "`r`n`$Name = `$(az aks show"
-        $CheckStr = $CheckStr + " ```r`n   --name `"" + $AksName + "`""
-        $CheckStr = $CheckStr + " ```r`n   --resource-group `"" + $ResourceGroup + "`""
-        $CheckStr = $CheckStr + " ```r`n   --query name"
-        $CheckStr = $CheckStr + " ```r`n   --output tsv)"
-
-        Write-Log -Message $CheckStr -LogFile $This.LogFile -Color "green"
-
-        $Name = $Null
-        Invoke-Expression $CheckStr
-
-        If ($Name -eq $AksName) {
-            Write-Log -Message "Azure Kubernates Service $AksName already exists" -LogFile $This.LogFile -Color "yellow"
+                $LastExitCode
+                If (!$?) {
+                    Throw("Error creating Azure Kubernates Service $($AksName)")
+                }
+                Else {
+                    Write-Log -Message "Azure Kubernates Service $($AksName) has been successfully created" -LogFile $This.LogFile -Color "green"
+                }                
+            }  
         }
-        Else {        
-            Write-Log -Message "Creating Azure Kubernates Service $AksName ..." -LogFile $This.LogFile -Color "green"
-
-            $CommandStr = $This.BuildCommand()        
-
-            Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
-        
-            Invoke-Expression $CommandStr
-
-            Write-Log -Message "Azure Kubernates Service $AksName has been created" -LogFile $This.LogFile -Color "green"
-        }  
+        Catch {
+            Throw($_.Exception.Message)
+        }
 
         Return $Variables
     }
 }
 
-Class AzServicebusNamespaceCreate : AzCommand {
+Class AzCommandServicebusNamespaceCreate : AzCommand {
 
-    AzServicebusNamespaceCreate([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Return, $Params, $LogFile) {
-      
+    AzCommandServicebusNamespaceCreate([String] $Type, [String] $Name, [String] $Output, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Name, $Output, $Params, $LogFile) {  
     }
 
     [Hashtable] Execute([Hashtable] $Variables) {
@@ -584,14 +568,16 @@ Class AzServicebusNamespaceCreate : AzCommand {
         $SbName = $This.FindParamValueByName("name")
 
         $CheckStr = "`r`n`$Check = `$(az servicebus namespace exists"
-        $CheckStr = $CheckStr + " ```r`n   --name `"" + $SbName + "`")"
+        $CheckStr = $CheckStr + " ```r`n   --name `"" + $SbName + "`""
+        $CheckStr = $CheckStr + " ```r`n   --query `"nameAvailable`""
+        $CheckStr = $CheckStr + " ```r`n   --output `"tsv`")"
 
         Write-Log -Message $CheckStr -LogFile $This.LogFile -Color "green"
 
         $Check = $False
         Invoke-Expression $CheckStr
 
-        If ($True -eq $Check) {
+        If ($False -eq $Check) {
             Write-Log -Message "Azure Service Bus $SbName already exists" -LogFile $This.LogFile -Color "yellow"
         }
         Else {        
@@ -603,46 +589,21 @@ Class AzServicebusNamespaceCreate : AzCommand {
         
             Invoke-Expression $CommandStr
 
-            Write-Log -Message "Azure Service Bus $SbName has been created" -LogFile $This.LogFile -Color "green"
+            $LastExitCode
+            If (!$?) {
+                Throw("Error creating Azure Service Bus $($SbName)")
+            }
+            Else {
+                Write-Log -Message "Azure Service Bus $($SbName) has been successfully created" -LogFile $This.LogFile -Color "green"
+            }            
         }
         Return $Variables
     }
 }
 
-Class AzServicebusNamespaceAuthorizationRuleKeysList : AzCommand {
+Class AzCommandCosmosdbCreate : AzCommand {
 
-    AzServicebusNamespaceAuthorizationRuleKeysList([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Return, $Params, $LogFile) {
-      
-    }
-
-    [Hashtable] Execute([Hashtable] $Variables) {
-        $This.ReplaceParamsTokens($Variables)
-
-        $Value = $This.Return
-
-        $Success = $False            
-        $Result = [Regex]::Match($Value,  "\{{(.*?)\}}")
-        $Success = $Result.Success
-
-        If($Success -eq $True) {
-            $Output = $Null
-            $CommandStr = "`r`n`$Output = `$(" + $This.BuildCommand() + ")"      
-
-            Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
-            
-            Invoke-Expression $CommandStr
-            
-            $FoundName = $Result.Groups[1].Value
-            $Variables.Add( $FoundName, $Output)
-        }                
-
-        Return $Variables
-    }
-}
-
-Class AzCosmosdbCreate : AzCommand {
-
-    AzCosmosdbCreate([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Return, $Params, $LogFile) {
+    AzCommandCosmosdbCreate([String] $Type, [String] $Name, [String] $Output, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Name, $Output, $Params, $LogFile) {
       
     }
 
@@ -659,7 +620,7 @@ Class AzCosmosdbCreate : AzCommand {
         $Check = $False
         Invoke-Expression $CheckStr
 
-        If ($True -eq $Check) {
+        If ("true" -eq $Check) {
             Write-Log -Message "Azure Cosmo DB $CosmosDbName already exists" -LogFile $This.LogFile -Color "yellow"
         }
         Else {        
@@ -671,12 +632,56 @@ Class AzCosmosdbCreate : AzCommand {
         
             Invoke-Expression $CommandStr
 
-            Write-Log -Message "Azure Cosmo DB $CosmosDbName has been created" -LogFile $This.LogFile -Color "green"
+            $LastExitCode
+            If (!$?) {
+                Throw("Error creating Azure Cosmo DB $($CosmosDbName)")
+            }
+            Else {
+                Write-Log -Message "Azure Cosmo DB $($CosmosDbName) has been successfully created" -LogFile $This.LogFile -Color "green"
+            }            
         }  
         Return $Variables
     }
 }
 
+Class AzCommandQuery : AzCommand {
+
+    AzCommandQuery([String] $Type, [String] $Name, [String] $Output, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Name, $Output, $Params, $LogFile) {
+      
+    }
+
+    [Hashtable] Execute([Hashtable] $Variables) {
+        $This.ReplaceParamsTokens($Variables)
+
+        $Value = $This.Output
+
+        $Success = $False            
+        $Result = [Regex]::Match($Value,  "\{{(.*?)\}}")
+        $Success = $Result.Success
+
+        If($Success -eq $True) {
+            $Output = $Null
+            $CommandStr = "`r`n`$Output = `$(" + $This.BuildCommand() + ")"      
+
+            Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
+            
+            Invoke-Expression $CommandStr
+
+            $LastExitCode
+            If (!$?) {
+                Throw("Error running a query")
+            }
+            Else {
+                Write-Log -Message "Query has been successfully ran" -LogFile $This.LogFile -Color "green"
+            }   
+            
+            $FoundName = $Result.Groups[1].Value
+            $Variables.Add( $FoundName, $Output)
+        }                
+
+        Return $Variables
+    }
+}
 Function Get-CommandParam($Params){
 	$Result = @()
 	Foreach ($Param in $Params){
@@ -741,14 +746,12 @@ $Commands = @()
 
 Foreach ($AzCommand in $XmlDoc.azCommands.azCommand){
     Try {
-        $Type = $AzCommand.type.ToLower();
-        $Return = $AzCommand.return;
+        $Type = $AzCommand.type;
+        $Name = $AzCommand.name.ToLower();
+        $Output = $AzCommand.output;
         $Params = Get-CommandParam $AzCommand.azParam
 
-        #$Params
-        #Write-Output ""
-
-        $Command = $Factory.CreateCommand($Type, $Return, $Params, $LogFile)
+        $Command = $Factory.CreateCommand($Type, $Name, $Output, $Params, $LogFile)
         $Commands += $Command
 
         $Variables = $Command.Execute($Variables)

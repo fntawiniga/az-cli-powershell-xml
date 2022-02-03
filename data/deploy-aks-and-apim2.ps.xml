@@ -10,7 +10,7 @@
         <azParam name="org" value="cnsc" />         
         <azParam name="app" value="svc" />     
         <azParam name="env" value="dev" />  
-        <azParam name="instance" value="003" />
+        <azParam name="instance" value="005" />
         <azParam name="resource-group" value="rg-{{org}}-{{app}}-{{env}}-{{instance}}" />
         <azParam name="location" value="canadaeast" />        
         <azParam name="keyvault" value="kv-{{org}}-{{app}}-{{env}}-{{instance}}" />
@@ -35,51 +35,15 @@
         <azParam name="resource-group" value="{{resource-group}}" />
         <azParam name="location" value="{{location}}" />
     </azCommand>
-    <azCommand  type="execute" name="az network vnet create">
-        <azParam name="name" value="{{vnet}}" />
-        <azParam name="resource-group" value="{{resource-group}}" />
-        <azParam name="location" value="{{location}}" />
-        <azParam name="address-prefixes" value="10.10.0.0/16" />
-    </azCommand>
-    <azCommand  type="execute" name="az network vnet subnet create">
-        <azParam name="name" value="{{snet-aks}}" />
-        <azParam name="resource-group" value="{{resource-group}}" />
-        <azParam name="vnet-name" value="{{vnet}}" />
-        <azParam name="address-prefixes" value="10.10.1.0/24" />
-    </azCommand>
-    <azCommand  type="execute" name="az network vnet subnet create">
-        <azParam name="name" value="{{snet-apim}}" />
-        <azParam name="resource-group" value="{{resource-group}}" />
-        <azParam name="vnet-name" value="{{vnet}}" />
-        <azParam name="address-prefixes" value="10.10.2.0/24" />
-    </azCommand>
-    <azCommand  type="query" name="az network vnet show" output="{{vnet-id}}">
-        <azParam name="name" value="{{vnet}}" />
-        <azParam name="resource-group" value="{{resource-group}}" />
-        <azParam name="query" value="id" />
-        <azParam name="output" value="tsv" />
-    </azCommand>
-    <azCommand  type="execute-query" name="az ad sp create-for-rbac" output="{{sp-password}}">
-        <azParam name="name" value="{{sp-name}}" />
-        <azParam name="role" value="Contributor" />
-        <azParam name="scopes" value="{{vnet-id}}" />
-    </azCommand>
-    <azCommand  type="execute" name="az keyvault secret set">
-        <azParam name="name" value="{{sp-name}}" />
-        <azParam name="vault-name" value="{{keyvault}}" />
-        <azParam name="value" value="{{sp-password}}" />
-    </azCommand>
     <azCommand  type="execute" name="az acr create">
         <azParam name="name" value="{{acr-name}}" />
         <azParam name="resource-group" value="{{resource-group}}" />
         <azParam name="location" value="{{location}}" />
         <azParam name="sku" value="Standard" />
     </azCommand>
-    <azCommand  type="query" name="az network vnet subnet show" output="{{aks-subnet-id}}">
-        <azParam name="resource-group" value="resource-group" />
-        <azParam name="vnet-name" value="{{vnet}}" />
-        <azParam name="name" value="snet-aks" />
-        <azParam name="query" value="id" />
+    <azCommand  type="query" name="az aks get-versions" output="{{aks-latest-version}}">
+        <azParam name="location" value="{{location}}" />
+        <azParam name="query" value="orchestrators[-1].orchestratorVersion" />
         <azParam name="output" value="tsv" />
     </azCommand>
     <azCommand  type="execute" name="az aks create">
@@ -87,19 +51,19 @@
         <azParam name="resource-group" value="{{resource-group}}" />
         <azParam name="location" value="{{location}}" />
         <azParam name="node-count" value="1" />
-        <azParam name="service-principal" value="{{app-id}}" />
-        <azParam name="client-secret" value="{{sp-password}}" />
+        <!--azParam name="service-principal" value="{{app-id}}" />
+        <azParam name="client-secret" value="{{sp-password}}" /-->
         <azParam name="load-balancer-sku" value="standard" />
         <azParam name="kubernetes-version" value="{{aks-latest-version}}" />
-        <azParam name="network-plugin" value="azure" />
-        <azParam name="vnet-subnet-id" value="{{aks-subnet-id}}" />
+        <azParam name="network-plugin" value="kubenet" />
+        <!--azParam name="vnet-subnet-id" value="{{aks-subnet-id}}" />
         <azParam name="service-cidr" value="10.0.0.0/16" />
         <azParam name="dns-service-ip" value="10.0.0.10" />
-        <azParam name="docker-bridge-address" value="172.17.0.1/16" />
-        <azParam name="node-vm-size" value="Standard_B2s" />
+        <azParam name="docker-bridge-address" value="172.17.0.1/16" /-->
+        <!--azParam name="node-vm-size" value="Standard_B2s" /-->
         <azParam name="enable-addons" value="monitoring" />
         <azParam name="attach-acr" value="{{acr-name}}" />
-        <azParam name="ssh-key-value" value="C:\Dev\Temp\aks-ssh-service.pub" />
+        <!--azParam name="ssh-key-value" value="C:\Dev\Temp\aks-ssh-service.pub" /-->
     </azCommand>
     <azCommand  type="execute" name="az servicebus namespace create">
         <azParam name="name" value="{{sb-name}}" />
