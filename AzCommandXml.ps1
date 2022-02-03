@@ -127,7 +127,7 @@ Class AzFactory {
 				Break
 			}
             "az network vnet subnet create" {
-				$Command = (New-Object -TypeName "AzNetworkVenetSubnetCreate" -ArgumentList $Arguments)
+				$Command = (New-Object -TypeName "AzNetworkVnetSubnetCreate" -ArgumentList $Arguments)
 				Break
 			}
             "az network vnet show" {
@@ -354,9 +354,9 @@ Class AzNetworkVnetCreate : AzCommand {
     }
 }
 
-Class AzNetworkVenetSubnetCreate : AzCommand {
+Class AzNetworkVnetSubnetCreate : AzCommand {
 
-    AzNetworkVenetSubnetCreate([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Return, $Params, $LogFile) {
+    AzNetworkVnetSubnetCreate([String] $Type, [String] $Return, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Return, $Params, $LogFile) {
       
     }
 
@@ -446,7 +446,13 @@ Class AzKevaultSecretSet : AzCommand {
       
     }
 
-    [Hashtable] Execute([Hashtable] $Variables) {
+    [Hashtable] Execute([Hashtable] $Variables) {$This.ReplaceParamsTokens($Variables)
+        $CommandStr = $This.BuildCommand()        
+
+        Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
+        
+        Invoke-Expression $CommandStr
+
         Return $Variables
     }
 }
@@ -458,6 +464,37 @@ Class AzAcrCreate : AzCommand {
     }
 
     [Hashtable] Execute([Hashtable] $Variables) {
+        $This.ReplaceParamsTokens($Variables)
+        
+        $AcrName = $This.FindParamValueByName("name")
+        $ResourceGroup = $This.FindParamValueByName("resource-group")
+
+        $CheckStr = "`r`n`$Name = `$(az acr show"
+        $CheckStr = $CheckStr + " ```r`n   --name `"" + $AcrName + "`""
+        $CheckStr = $CheckStr + " ```r`n   --resource-group `"" + $ResourceGroup + "`""
+        $CheckStr = $CheckStr + " ```r`n   --query name"
+        $CheckStr = $CheckStr + " ```r`n   --output tsv)"
+
+        Write-Log -Message $CheckStr -LogFile $This.LogFile -Color "green"
+
+        $Name = $Null
+        Invoke-Expression $CheckStr
+
+        If ($Name -eq $AcrName) {
+            Write-Log -Message "Azure Container Registry $AcrName already exists" -LogFile $This.LogFile -Color "yellow"
+        }
+        Else {        
+            Write-Log -Message "Creating Azure Container Registry $AcrName ..." -LogFile $This.LogFile -Color "green"
+
+            $CommandStr = $This.BuildCommand()        
+
+            Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
+        
+            Invoke-Expression $CommandStr
+
+            Write-Log -Message "Azure Container Registry $AcrName has been created" -LogFile $This.LogFile -Color "green"
+        }  
+
         Return $Variables
     }
 }
@@ -469,6 +506,26 @@ Class AzNetworkVnetSubnetShow : AzCommand {
     }
 
     [Hashtable] Execute([Hashtable] $Variables) {
+        $This.ReplaceParamsTokens($Variables)
+
+        $Value = $This.Return
+
+        $Success = $False            
+        $Result = [Regex]::Match($Value,  "\{{(.*?)\}}")
+        $Success = $Result.Success
+
+        If($Success -eq $True) {
+            $Output = $Null
+            $CommandStr = "`r`n`$Output = `$(" + $This.BuildCommand() + ")"      
+
+            Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
+            
+            Invoke-Expression $CommandStr
+            
+            $FoundName = $Result.Groups[1].Value
+            $Variables.Add( $FoundName, $Output)
+        }                
+
         Return $Variables
     }
 }
@@ -480,6 +537,37 @@ Class AzAksCreate : AzCommand {
     }
 
     [Hashtable] Execute([Hashtable] $Variables) {
+        $This.ReplaceParamsTokens($Variables)
+        
+        $AksName = $This.FindParamValueByName("name")
+        $ResourceGroup = $This.FindParamValueByName("resource-group")
+
+        $CheckStr = "`r`n`$Name = `$(az aks show"
+        $CheckStr = $CheckStr + " ```r`n   --name `"" + $AksName + "`""
+        $CheckStr = $CheckStr + " ```r`n   --resource-group `"" + $ResourceGroup + "`""
+        $CheckStr = $CheckStr + " ```r`n   --query name"
+        $CheckStr = $CheckStr + " ```r`n   --output tsv)"
+
+        Write-Log -Message $CheckStr -LogFile $This.LogFile -Color "green"
+
+        $Name = $Null
+        Invoke-Expression $CheckStr
+
+        If ($Name -eq $AksName) {
+            Write-Log -Message "Azure Kubernates Service $AksName already exists" -LogFile $This.LogFile -Color "yellow"
+        }
+        Else {        
+            Write-Log -Message "Creating Azure Kubernates Service $AksName ..." -LogFile $This.LogFile -Color "green"
+
+            $CommandStr = $This.BuildCommand()        
+
+            Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
+        
+            Invoke-Expression $CommandStr
+
+            Write-Log -Message "Azure Kubernates Service $AksName has been created" -LogFile $This.LogFile -Color "green"
+        }  
+
         Return $Variables
     }
 }
@@ -528,6 +616,26 @@ Class AzServicebusNamespaceAuthorizationRuleKeysList : AzCommand {
     }
 
     [Hashtable] Execute([Hashtable] $Variables) {
+        $This.ReplaceParamsTokens($Variables)
+
+        $Value = $This.Return
+
+        $Success = $False            
+        $Result = [Regex]::Match($Value,  "\{{(.*?)\}}")
+        $Success = $Result.Success
+
+        If($Success -eq $True) {
+            $Output = $Null
+            $CommandStr = "`r`n`$Output = `$(" + $This.BuildCommand() + ")"      
+
+            Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
+            
+            Invoke-Expression $CommandStr
+            
+            $FoundName = $Result.Groups[1].Value
+            $Variables.Add( $FoundName, $Output)
+        }                
+
         Return $Variables
     }
 }
