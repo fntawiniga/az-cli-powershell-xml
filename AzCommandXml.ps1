@@ -405,6 +405,26 @@ Class AzNetworkVnetShow : AzCommand {
     }
 
     [Hashtable] Execute([Hashtable] $Variables) {
+        $This.ReplaceParamsTokens($Variables)
+
+        $Value = $This.Return
+
+        $Success = $False            
+        $Result = [Regex]::Match($Value,  "\{{(.*?)\}}")
+        $Success = $Result.Success
+
+        If($Success -eq $True) {
+            $Output = $Null
+            $CommandStr = "`r`n`$Output = `$(" + $This.BuildCommand() + ")"      
+
+            Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
+            
+            Invoke-Expression $CommandStr
+            
+            $FoundName = $Result.Groups[1].Value
+            $Variables.Add( $FoundName, $Output)
+        }                
+
         Return $Variables
     }
 }
@@ -471,6 +491,32 @@ Class AzServicebusNamespaceCreate : AzCommand {
     }
 
     [Hashtable] Execute([Hashtable] $Variables) {
+        $This.ReplaceParamsTokens($Variables)
+        
+        $SbName = $This.FindParamValueByName("name")
+
+        $CheckStr = "`r`n`$Check = `$(az servicebus namespace exists"
+        $CheckStr = $CheckStr + " ```r`n   --name `"" + $SbName + "`")"
+
+        Write-Log -Message $CheckStr -LogFile $This.LogFile -Color "green"
+
+        $Check = $False
+        Invoke-Expression $CheckStr
+
+        If ($True -eq $Check) {
+            Write-Log -Message "Azure Service Bus $SbName already exists" -LogFile $This.LogFile -Color "yellow"
+        }
+        Else {        
+            Write-Log -Message "Creating Azure Service Bus $SbName ..." -LogFile $This.LogFile -Color "green"
+
+            $CommandStr = $This.BuildCommand()        
+
+            Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
+        
+            Invoke-Expression $CommandStr
+
+            Write-Log -Message "Azure Service Bus $SbName has been created" -LogFile $This.LogFile -Color "green"
+        }
         Return $Variables
     }
 }
@@ -493,6 +539,32 @@ Class AzCosmosdbCreate : AzCommand {
     }
 
     [Hashtable] Execute([Hashtable] $Variables) {
+        $This.ReplaceParamsTokens($Variables)
+        
+        $CosmosDbName = $This.FindParamValueByName("name")
+
+        $CheckStr = "`r`n`$Check = `$(az cosmosdb check-name-exists"
+        $CheckStr = $CheckStr + " ```r`n   --name `"" + $CosmosDbName + "`")"
+
+        Write-Log -Message $CheckStr -LogFile $This.LogFile -Color "green"
+
+        $Check = $False
+        Invoke-Expression $CheckStr
+
+        If ($True -eq $Check) {
+            Write-Log -Message "Azure Cosmo DB $CosmosDbName already exists" -LogFile $This.LogFile -Color "yellow"
+        }
+        Else {        
+            Write-Log -Message "Creating Azure Cosmo DB $CosmosDbName ..." -LogFile $This.LogFile -Color "green"
+
+            $CommandStr = $This.BuildCommand()        
+
+            Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
+        
+            Invoke-Expression $CommandStr
+
+            Write-Log -Message "Azure Cosmo DB $CosmosDbName has been created" -LogFile $This.LogFile -Color "green"
+        }  
         Return $Variables
     }
 }
