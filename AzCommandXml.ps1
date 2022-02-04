@@ -537,6 +537,18 @@ Class AzCommandAksCreate : AzCommand {
                 $CommandStr = $This.BuildCommand()        
 
                 Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
+
+                Try {
+                    $SshKeyValue = $This.FindParamValueByName("ssh-key-value")
+
+                    $AksSshFilename = $SshKeyValue.Substring(0, $SshKeyValue.LastIndexOf('.'))
+                    Write-Output "y" | ssh-keygen -b 2048 -t rsa -f $AksSshFilename -q -N """"
+
+                    Write-Log -Message "SSH Key $($AksSshFilename) has been successfully created" -LogFile $This.LogFile -Color "green"
+                }
+                Catch {
+
+                }
             
                 Invoke-Expression $CommandStr
 
