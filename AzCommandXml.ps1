@@ -5,9 +5,9 @@
 param
 (
     #required params
-	[String]$OutputFolder = "C:\Temp", #$(throw "Output folder (-OutputFolder) Required"),
-	[String]$Script = ".\data\deploy-aks-and-apim2.ps.xml", # $(throw "XML Script (-Script) Required"),
-	[String]$StopOnError = $False
+	[String] $OutputFolder = "C:\Temp", #$(throw "Output folder (-OutputFolder) Required"),
+	[String] $Script = ".\data\deploy-aks-and-apim2.ps.xml", # $(throw "XML Script (-Script) Required"),
+	[String] $StopOnError = $False
 )
 
 Class AzCommand {
@@ -31,17 +31,22 @@ Class AzCommand {
         $This.LogFile = $LogFile
     }
 
-    [String] BuildCommand() {
+    [String] BuildCommand([Boolean] $AddQuoteToParam) {
         $CommandStr = "`r`n" + $This.Name
 
         Foreach($Param in $This.Params) {
-            $CommandStr = $CommandStr + " ```r`n   --" + $Param.Name + " `"" + $Param.Value + "`""
+            If($AddQuoteToParam) {
+                $CommandStr = $CommandStr + " ```r`n   --" + $Param.Name + " `"" + $Param.Value + "`""
+            }
+            Else {
+                $CommandStr = $CommandStr + " ```r`n   --" + $Param.Name + " " + $Param.Value + ""
+            }            
         }
 
         Return $CommandStr
     }
 
-    [Void] ReplaceParamsTokens($Variables) {
+    [Void] ReplaceParamsTokens([Hashtable] $Variables) {
         For($i=0; $i -lt $This.Params.Length; $i++){
             $Value =  $This.Params[$i].Value
             $Success = $False
@@ -157,6 +162,14 @@ Class AzFactory {
                     $Command = (New-Object -TypeName "AzCommandCosmosdbCreate" -ArgumentList $Arguments)
                     Break
                 }
+                "az apim create" {
+                    $Command = (New-Object -TypeName "AzCommandApimCreate" -ArgumentList $Arguments)
+                    Break
+                }
+                "az resource update" {
+                    $Command = (New-Object -TypeName "AzCommandResourceUpdate" -ArgumentList $Arguments)
+                    Break
+                }
                 Default: {
                     Throw("Command not supported")
                 }
@@ -200,7 +213,7 @@ Class AzCommandGlobalVariables : AzCommand {
             } While ($Success -eq $True)
         }
 
-        $CommandStr = $This.BuildCommand()        
+        $CommandStr = $This.BuildCommand($False)        
 
         Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
 
@@ -217,7 +230,7 @@ Class AzCommandAccountSet : AzCommand {
     [Hashtable] Execute([Hashtable] $Variables) {
         $This.ReplaceParamsTokens($Variables)
 
-        $CommandStr = $This.BuildCommand()      
+        $CommandStr = $This.BuildCommand($True)      
 
         Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
         
@@ -260,7 +273,7 @@ Class AzCommandGroupCreate : AzCommand {
         }
         Else {        
             Write-Log -Message "Creating Resource Group $($ResourceGroup) ..." -LogFile $This.LogFile -Color "green"
-            $CommandStr = $This.BuildCommand()        
+            $CommandStr = $This.BuildCommand($False)        
 
             Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
 
@@ -310,7 +323,7 @@ Class AzCommandKeyvaultCreate : AzCommand {
         Else {        
             Write-Log -Message "Creating Azure KeyVault $KeyVault ..." -LogFile $This.LogFile -Color "green"
 
-            $CommandStr = $This.BuildCommand()        
+            $CommandStr = $This.BuildCommand($False)        
 
             Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
 
@@ -360,7 +373,7 @@ Class AzCommandNetworkVnetCreate : AzCommand {
         Else {        
             Write-Log -Message "Creating Azure Vnet $VnetName ..." -LogFile $This.LogFile -Color "green"
 
-            $CommandStr = $This.BuildCommand()        
+            $CommandStr = $This.BuildCommand($False)        
 
             Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
 
@@ -411,7 +424,7 @@ Class AzCommandNetworkVnetSubnetCreate : AzCommand {
         Else {        
             Write-Log -Message "Creating Azure Vnet Subnet $SubnetName ..." -LogFile $This.LogFile -Color "green"
 
-            $CommandStr = $This.BuildCommand()        
+            $CommandStr = $This.BuildCommand($False)        
 
             Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
         
@@ -449,7 +462,7 @@ Class AzCommandKevaultSecretSet : AzCommand {
     }
 
     [Hashtable] Execute([Hashtable] $Variables) {$This.ReplaceParamsTokens($Variables)
-        $CommandStr = $This.BuildCommand()        
+        $CommandStr = $This.BuildCommand($False)        
 
         Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
         
@@ -498,7 +511,7 @@ Class AzCommandAcrCreate : AzCommand {
         Else {        
             Write-Log -Message "Creating Azure Container Registry $AcrName ..." -LogFile $This.LogFile -Color "green"
 
-            $CommandStr = $This.BuildCommand()        
+            $CommandStr = $This.BuildCommand($False)        
 
             Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
         
@@ -548,7 +561,7 @@ Class AzCommandAksCreate : AzCommand {
             Else {        
                 Write-Log -Message "Creating Azure Kubernates Service $AksName ..." -LogFile $This.LogFile -Color "green"
 
-                $CommandStr = $This.BuildCommand()        
+                $CommandStr = $This.BuildCommand($False)        
 
                 Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
 
@@ -605,13 +618,13 @@ Class AzCommandServicebusNamespaceCreate : AzCommand {
         $Check = $False
         Invoke-Expression $CheckStr
 
-        If ($False -eq $Check) {
+        If ("false" -eq $Check) {
             Write-Log -Message "Azure Service Bus $SbName already exists" -LogFile $This.LogFile -Color "yellow"
         }
         Else {        
             Write-Log -Message "Creating Azure Service Bus $SbName ..." -LogFile $This.LogFile -Color "green"
 
-            $CommandStr = $This.BuildCommand()        
+            $CommandStr = $This.BuildCommand($False)        
 
             Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
         
@@ -656,7 +669,7 @@ Class AzCommandCosmosdbCreate : AzCommand {
         Else {        
             Write-Log -Message "Creating Azure Cosmo DB $CosmosDbName ..." -LogFile $This.LogFile -Color "green"
 
-            $CommandStr = $This.BuildCommand()        
+            $CommandStr = $This.BuildCommand($False)        
 
             Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
         
@@ -672,6 +685,84 @@ Class AzCommandCosmosdbCreate : AzCommand {
                 Write-Log -Message "Azure Cosmo DB $($CosmosDbName) has been successfully created" -LogFile $This.LogFile -Color "green"
             }            
         }  
+        Return $Variables
+    }
+}
+
+Class AzCommandApimCreate : AzCommand {
+
+    AzCommandApimCreate([String] $Type, [String] $Name, [String] $Output, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Name, $Output, $Params, $LogFile) {
+    }
+
+    [Hashtable] Execute([Hashtable] $Variables) {
+        $This.ReplaceParamsTokens($Variables)
+        
+        $ApimName = $This.FindParamValueByName("name")
+        $ResourceGroup = $This.FindParamValueByName("resource-group")
+
+        $CheckStr = "`r`n`$Name = `$(az apim show"
+        $CheckStr = $CheckStr + " ```r`n   --name `"" + $ApimName + "`""
+        $CheckStr = $CheckStr + " ```r`n   --resource-group `"" + $ResourceGroup + "`""
+        $CheckStr = $CheckStr + " ```r`n   --query name"
+        $CheckStr = $CheckStr + " ```r`n   --output tsv)"
+
+        Write-Log -Message $CheckStr -LogFile $This.LogFile -Color "green"
+
+        $Name = $Null
+        Invoke-Expression $CheckStr
+
+        If ($Name -eq $ApimName) {
+            Write-Log -Message "Azure Api Management $ApimName already exists" -LogFile $This.LogFile -Color "yellow"
+        }
+        Else {        
+            Write-Log -Message "Creating Azure Api Management $ApimName ..." -LogFile $This.LogFile -Color "green"
+
+            $CommandStr = $This.BuildCommand($False)        
+
+            Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
+        
+            $CommandStr = $CommandStr + "`r`n `$ErrorFound = `$?"
+
+            $ErrorFound = $False
+            Invoke-Expression $CommandStr
+
+            If (!$ErrorFound) {
+                Throw("Error creating Azure Api Management $($ApimName)")
+            }
+            Else {
+                Write-Log -Message "Azure Api Management $($ApimName) has been successfully created" -LogFile $This.LogFile -Color "green"
+            }              
+        }  
+
+        Return $Variables
+    }
+}
+
+Class AzCommandResourceUpdate : AzCommand {
+
+    AzCommandResourceUpdate([String] $Type, [String] $Name, [String] $Output, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Name, $Output, $Params, $LogFile) {
+      
+    }
+
+    [Hashtable] Execute([Hashtable] $Variables) {
+        $This.ReplaceParamsTokens($Variables)
+
+        $CommandStr = $This.BuildCommand($False)      
+
+        Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
+        
+        $CommandStr = $CommandStr + "`r`n `$ErrorFound = `$?"
+
+        $ErrorFound = $False
+        Invoke-Expression $CommandStr
+
+        If (!$ErrorFound) {
+            Throw("Error updating resource")
+        }
+        Else {
+            Write-Log -Message "Azure Resource has been successfully updated" -LogFile $This.LogFile -Color "green"
+        }    
+
         Return $Variables
     }
 }
@@ -693,7 +784,7 @@ Class AzCommandQuery : AzCommand {
 
         If($Success -eq $True) {
             $Output = $Null
-            $CommandStr = "`r`n`$Output = `$(" + $This.BuildCommand() + ")"      
+            $CommandStr = "`r`n`$Output = `$(" + $This.BuildCommand($False) + ")"      
 
             Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
             
