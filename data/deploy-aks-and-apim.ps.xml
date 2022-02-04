@@ -103,7 +103,7 @@
     </azCommand>
     <azCommand  type="execute" name="az servicebus namespace create">
         <azParam name="name" value="{{sb-name}}" />
-        <azParam name="resource-group" value="resource-group}}" />
+        <azParam name="resource-group" value="{{resource-group}}" />
         <azParam name="location" value="{{location}}" />
         <azParam name="sku" value="Standard" />
     </azCommand>
@@ -111,7 +111,7 @@
         <azParam name="resource-group" value="{{resource-group}}" />
         <azParam name="name" value="RootManageSharedAccessKey" />
         <azParam name="namespace-name" value="{{sb-name}}" />
-        <azParam name="query" value="[].primaryKey" />
+        <azParam name="query" value="primaryKey" />
         <azParam name="output" value="tsv" />
     </azCommand>
     <azCommand  type="execute" name="az keyvault secret set">

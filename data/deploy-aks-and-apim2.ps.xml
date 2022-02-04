@@ -22,6 +22,7 @@
         <azParam name="vnet" value="aks-vnet-38323365" />
         <azParam name="snet-aks" value="aks-subnet" />
         <azParam name="snet-apim" value="apim-subnet" />
+        <azParam name="apim-name" value="apim-{{org}}-{{svc}}-{{env}}-{{instance}}" />
     </azCommand>
     <azCommand  type="execute" name="az account set">
         <azParam name="subscription" value="Dev 12" />
@@ -34,12 +35,18 @@
         <azParam name="name" value="{{keyvault}}" />
         <azParam name="resource-group" value="{{resource-group}}" />
         <azParam name="location" value="{{location}}" />
+    </azCommand>    
+    <azCommand  type="execute" name="az servicebus namespace create">
+        <azParam name="name" value="{{sb-name}}" />
+        <azParam name="resource-group" value="{{resource-group}}" />
+        <azParam name="location" value="{{location}}" />
+        <azParam name="sku" value="Standard" />
     </azCommand>
     <azCommand  type="query" name="az servicebus namespace authorization-rule keys list" output="{{sb-settings-shared-access-key}}">
         <azParam name="resource-group" value="{{resource-group}}" />
         <azParam name="name" value="RootManageSharedAccessKey" />
         <azParam name="namespace-name" value="{{sb-name}}" />
-        <azParam name="query" value="[].primaryKey" />
+        <azParam name="query" value="primaryKey" />
         <azParam name="output" value="tsv" />
     </azCommand>
     <azCommand  type="execute" name="az keyvault secret set">
@@ -54,7 +61,7 @@
         <azParam name="default-consistency-level" value="Eventual" />
         <azParam name="enable-automatic-failover" value="true" />
         <azParam name="server-version" value="4.0" />
-        <azParam name="locations" value="regionName=Canada Central failoverPriority=0 isZoneRedundant=False" />
+        <azParam name="locations" value="regionName=canadacentral failoverPriority=0 isZoneRedundant=False" />
     </azCommand>
     <azCommand  type="execute" name="az keyvault secret set">
         <azParam name="name" value="eventStoreSettingsPassword" />
@@ -91,11 +98,42 @@
         <azParam name="attach-acr" value="{{acr-name}}" />
         <azParam name="ssh-key-value" value="C:\Dev\Temp\aks-ssh-service.pub" />
     </azCommand>
-    <azCommand  type="execute" name="az servicebus namespace create">
-        <azParam name="name" value="{{sb-name}}" />
-        <azParam name="resource-group" value="{{resource-group}}" />
+    <azCommand  type="execute" name="az apim create">
+        <azParam name="name" value="{{apim-name}}" />
+        <azParam name="resource-group" value="{{aks-resource-group}}" />
         <azParam name="location" value="{{location}}" />
-        <azParam name="sku" value="Standard" />
+        <azParam name="publisher-email" value="ASD-SDA@cnsc-ccsn.gc.ca" />
+        <azParam name="publisher-name" value="CNSC-CCSN" />
+        <azParam name="virtual-network" value="External" />
+    </azCommand>
+    <azCommand  type="query" name="az apim show" output="{{apim-id}}">
+        <azParam name="name" value="{{apim-name}}" />
+        <azParam name="resource-group" value="{{aks-resource-group}}" />
+        <azParam name="query" value="id" />
+        <azParam name="output" value="tsv" />
+    </azCommand>
+    <azCommand  type="query" name="az network vnet show" output="{{vnet-id}}">
+        <azParam name="name" value="{{vnet}}" />
+        <azParam name="resource-group" value="{{aks-resource-group}}" />
+        <azParam name="query" value="id" />
+        <azParam name="output" value="tsv" />
+    </azCommand>
+    <azCommand  type="execute" name="az network vnet subnet create">
+        <azParam name="name" value="{{snet-apim}}" />
+        <azParam name="resource-group" value="{{aks-resource-group}}" />
+        <azParam name="vnet-name" value="{{vnet}}" />
+        <azParam name="address-prefixes" value="10.240.1.0/16" />
+    </azCommand>
+    <azCommand  type="query" name="az network vnet subnet show" output="{{apim-subnet-id}}">
+        <azParam name="resource-group" value="aks-resource-group" />
+        <azParam name="vnet-name" value="{{vnet}}" />
+        <azParam name="name" value="snet-apim" />
+        <azParam name="query" value="id" />
+        <azParam name="output" value="tsv" />
+    </azCommand>
+    <azCommand  type="execute" name="az resource update">
+        <azParam name="ids" value="{{apim-id}}" />
+        <azParam name="set" value="properties.virtualNetworkConfiguration.subnetResourceId={{apim-subnet-id}}" />
     </azCommand>
 </azCommands>
 
