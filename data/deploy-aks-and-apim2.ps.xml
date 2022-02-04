@@ -18,7 +18,7 @@
         <azParam name="cosmos-db-name" value="cosmos-{{org}}-{{app}}-{{env}}-{{instance}}" />
         <azParam name="acr-name" value="cr{{org}}{{app}}{{env}}{{instance}}" />
         <azParam name="aks-name" value="ks-{{org}}-{{app}}-{{env}}-{{instance}}" />
-        <azParam name="aks-resource-group" value="MC_{{resource-group}}}}_{{aks-name}}" />
+        <azParam name="aks-resource-group" value="MC_{{resource-group}}_{{aks-name}}_{{location}}" />
         <azParam name="vnet" value="aks-vnet-38323365" />
         <azParam name="snet-aks" value="aks-subnet" />
         <azParam name="snet-apim" value="apim-subnet" />
