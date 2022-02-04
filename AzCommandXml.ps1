@@ -7,7 +7,7 @@ param
     #required params
 	[String]$OutputFolder = "C:\Temp", #$(throw "Output folder (-OutputFolder) Required"),
 	[String]$Script = ".\data\deploy-aks-and-apim2.ps.xml", # $(throw "XML Script (-Script) Required"),
-	[String]$StopOnError = $True
+	[String]$StopOnError = $False
 )
 
 Class AzCommand {
@@ -221,10 +221,12 @@ Class AzCommandAccountSet : AzCommand {
 
         Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
         
-        Invoke-Expression $CommandStr      
-        
-        $LastExitCode
-        If (!$?) {
+        $CommandStr = $CommandStr + "`r`n `$ErrorFound = `$?"
+
+        $ErrorFound = $False
+        Invoke-Expression $CommandStr
+
+        If (!$ErrorFound) {
             Throw("Error setting subscription")
         }
         Else {
@@ -261,11 +263,13 @@ Class AzCommandGroupCreate : AzCommand {
             $CommandStr = $This.BuildCommand()        
 
             Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
-        
+
+            $CommandStr = $CommandStr + "`r`n `$ErrorFound = `$?"
+
+            $ErrorFound = $False
             Invoke-Expression $CommandStr
 
-            $LastExitCode
-            If (!$?) {
+            If (!$ErrorFound) {
                 Throw("Error creating resource group $($ResourceGroup)")
             }
             Else {
@@ -309,11 +313,13 @@ Class AzCommandKeyvaultCreate : AzCommand {
             $CommandStr = $This.BuildCommand()        
 
             Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
-        
-            Invoke-Expression $CommandStr
 
-            $LastExitCode
-            If (!$?) {
+            $CommandStr = $CommandStr + "`r`n `$ErrorFound = `$?"
+
+            $ErrorFound = $False
+            Invoke-Expression $CommandStr
+    
+            If (!$ErrorFound) {
                 Throw("Error creating Azure KeyVault $($KeyVault)")
             }
             Else {
@@ -357,11 +363,13 @@ Class AzCommandNetworkVnetCreate : AzCommand {
             $CommandStr = $This.BuildCommand()        
 
             Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
-        
+
+            $CommandStr = $CommandStr + "`r`n `$ErrorFound = `$?"
+
+            $ErrorFound = $False
             Invoke-Expression $CommandStr
 
-            $LastExitCode
-            If (!$?) {
+            If (!$ErrorFound) {
                 Throw("Error creating Azure Vnet $($VnetName)")
             }
             Else {
@@ -407,10 +415,12 @@ Class AzCommandNetworkVnetSubnetCreate : AzCommand {
 
             Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
         
-            Invoke-Expression $CommandStr
+            $CommandStr = $CommandStr + "`r`n `$ErrorFound = `$?"
 
-            $LastExitCode
-            If (!$?) {
+            $ErrorFound = $False
+            Invoke-Expression $CommandStr
+    
+            If (!$ErrorFound) {
                 Throw("Error creating Azure Vnet Subnet $($SubnetName)")
             }
             Else {
@@ -443,10 +453,12 @@ Class AzCommandKevaultSecretSet : AzCommand {
 
         Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
         
+        $CommandStr = $CommandStr + "`r`n `$ErrorFound = `$?"
+
+        $ErrorFound = $False
         Invoke-Expression $CommandStr
 
-        $LastExitCode
-        If (!$?) {
+        If (!$ErrorFound) {
             Throw("Error setting Keyvault Secret")
         }
         Else {
@@ -490,10 +502,12 @@ Class AzCommandAcrCreate : AzCommand {
 
             Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
         
+            $CommandStr = $CommandStr + "`r`n `$ErrorFound = `$?"
+
+            $ErrorFound = $False
             Invoke-Expression $CommandStr
 
-            $LastExitCode
-            If (!$?) {
+            If (!$ErrorFound) {
                 Throw("Error creating Azure Container Registry $($AcrName)")
             }
             Else {
@@ -550,10 +564,12 @@ Class AzCommandAksCreate : AzCommand {
 
                 }
             
+                $CommandStr = $CommandStr + "`r`n `$ErrorFound = `$?"
+
+                $ErrorFound = $False
                 Invoke-Expression $CommandStr
 
-                $LastExitCode
-                If (!$?) {
+                If (!$ErrorFound) {
                     Throw("Error creating Azure Kubernates Service $($AksName)")
                 }
                 Else {
@@ -599,10 +615,12 @@ Class AzCommandServicebusNamespaceCreate : AzCommand {
 
             Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
         
-            Invoke-Expression $CommandStr
+            $CommandStr = $CommandStr + "`r`n `$ErrorFound = `$?"
 
-            $LastExitCode
-            If (!$?) {
+            $ErrorFound = $False
+            Invoke-Expression $CommandStr
+    
+            If (!$ErrorFound) {
                 Throw("Error creating Azure Service Bus $($SbName)")
             }
             Else {
@@ -642,10 +660,12 @@ Class AzCommandCosmosdbCreate : AzCommand {
 
             Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
         
+            $CommandStr = $CommandStr + "`r`n `$ErrorFound = `$?"
+
+            $ErrorFound = $False
             Invoke-Expression $CommandStr
 
-            $LastExitCode
-            If (!$?) {
+            If (!$ErrorFound) {
                 Throw("Error creating Azure Cosmo DB $($CosmosDbName)")
             }
             Else {
@@ -677,10 +697,12 @@ Class AzCommandQuery : AzCommand {
 
             Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
             
+            $CommandStr = $CommandStr + "`r`n `$ErrorFound = `$?"
+
+            $ErrorFound = $False
             Invoke-Expression $CommandStr
 
-            $LastExitCode
-            If (!$?) {
+            If (!$ErrorFound) {
                 Throw("Error running a query")
             }
             Else {
@@ -770,9 +792,9 @@ Foreach ($AzCommand in $XmlDoc.azCommands.azCommand){
     }
     Catch {
         $ErrorMessage = $_.Exception.Message
-        $FailedItem = $_.Exception.ItemName
+        #$FailedItem = $_.Exception.ItemName
     
-        Write-Log -Message "Error - $ErrorMessage - $FailedItem " -LogFile $LogFile -Color "red"
+        Write-Log -Message "$ErrorMessage" -LogFile $LogFile -Color "red"
         Write-Log -Message " " -LogFile $LogFile -AddDate:$False
     
         $ErrorOccured = $True
