@@ -23,19 +23,30 @@
         <azParam name="snet-aks" value="aks-subnet" />
         <azParam name="snet-apim" value="apim-subnet" />
         <azParam name="apim-name" value="apim-{{org}}-{{svc}}-{{env}}-{{instance}}" />
+        <azParam name="nsg-name" value="nsg-apim-{{instance}}" />
+        <azParam name="nsg-rule-name-internet-virtualnetwork}}" value="nsg-rule-apim-internet-virtualnetwork-{{instance}}" />
+        <azParam name="nsg-rule-name-apimanagement-virtualnetwork}}" value="nsg-rule-apim-apimanagement-virtualnetwork-{{instance}}" />
+        <azParam name="nsg-rule-name-azureloadbalancer-virtualnetwork}}" value="nsg-rule-apim-azureloadbalancer-virtualnetwork-{{instance}}" />
+        <azParam name="nsg-rule-name-virtualnetwork-storage}}" value="nsg-rule-apim-virtualnetwork-storage-{{instance}}" />
+        <azParam name="nsg-rule-name-virtualnetwork-sql}}" value="nsg-rule-apim-virtualnetwork-sql-{{instance}}" />
+        <azParam name="nsg-rule-name-virtualnetwork-azurekeyvault}}" value="nsg-rule-apim-virtualnetwork-azurekeyvault-{{instance}}" />
     </azCommand>
+
     <azCommand  type="execute" name="az account set">
         <azParam name="subscription" value="Dev 12" />
     </azCommand>
+
     <azCommand  type="execute" name="az group create">
         <azParam name="name" value="{{resource-group}}" />
         <azParam name="location" value="{{location}}" />
     </azCommand>
+
     <azCommand  type="execute" name="az keyvault create">
         <azParam name="name" value="{{keyvault}}" />
         <azParam name="resource-group" value="{{resource-group}}" />
         <azParam name="location" value="{{location}}" />
     </azCommand>    
+
     <azCommand  type="execute" name="az servicebus namespace create">
         <azParam name="name" value="{{sb-name}}" />
         <azParam name="resource-group" value="{{resource-group}}" />
@@ -54,6 +65,7 @@
         <azParam name="vault-name" value="{{keyvault}}" />
         <azParam name="value" value="{{sb-settings-shared-access-key}}" />
     </azCommand>
+
     <azCommand  type="execute" name="az cosmosdb create">
         <azParam name="name" value="{{cosmos-db-name}}" />
         <azParam name="resource-group" value="{{resource-group}}" />
@@ -68,12 +80,14 @@
         <azParam name="vault-name" value="{{keyvault}}" />
         <azParam name="value" value="changeit" />
     </azCommand>
+
     <azCommand  type="execute" name="az acr create">
         <azParam name="name" value="{{acr-name}}" />
         <azParam name="resource-group" value="{{resource-group}}" />
         <azParam name="location" value="{{location}}" />
         <azParam name="sku" value="Standard" />
     </azCommand>
+
     <azCommand  type="query" name="az aks get-versions" output="{{aks-latest-version}}">
         <azParam name="location" value="{{location}}" />
         <azParam name="query" value="orchestrators[-1].orchestratorVersion" />
@@ -118,16 +132,108 @@
         <azParam name="query" value="id" />
         <azParam name="output" value="tsv" />
     </azCommand>
+
+    <azCommand  type="execute" name="az network nsg create">
+        <azParam name="name" value="{{nsg-name}}" />
+        <azParam name="resource-group" value="{{aks-resource-group}}" />
+        <azParam name="location" value="{{location}}" />
+    </azCommand>
+    <azCommand  type="execute" name="az network nsg rule create">
+        <azParam name="name" value="{{nsg-rule-name-internet-virtualnetwork}}" />
+        <azParam name="nsg-name" value="{{nsg-name}}" />
+        <azParam name="resource-group" value="{{aks-resource-group}}" />
+        <azParam name="priority" value="100" />
+        <azParam name="source-address-prefixes" value="Internet" />
+        <azParam name="source-port-ranges" value="*" />
+        <azParam name="destination-address-prefixes" value="VirtualNetwork" />
+        <azParam name="destination-port-ranges" value="80 443" />
+        <azParam name="direction" value="Inbound" />
+        <azParam name="access" value="Allow" />
+        <azParam name="protocol" value="Tcp" />
+        <azParam name="description" value="Client communication to API Management" />
+    </azCommand>
+    <azCommand  type="execute" name="az network nsg rule create">
+        <azParam name="name" value="{{nsg-rule-name-apimanagement-virtualnetwork}}" />
+        <azParam name="nsg-name" value="{{nsg-name}}" />
+        <azParam name="resource-group" value="{{aks-resource-group}}" />
+        <azParam name="priority" value="110" />
+        <azParam name="source-address-prefixes" value="ApiManagement" />
+        <azParam name="source-port-ranges" value="*" />
+        <azParam name="destination-address-prefixes" value="VirtualNetwork" />
+        <azParam name="destination-port-ranges" value="3443" />
+        <azParam name="direction" value="Inbound" />
+        <azParam name="access" value="Allow" />
+        <azParam name="protocol" value="Tcp" />
+        <azParam name="description" value="Management endpoint for Azure portal and PowerShell" />
+    </azCommand>
+    <azCommand  type="execute" name="az network nsg rule create">
+        <azParam name="name" value="{{nsg-rule-name-azureloadbalancer-virtualnetwork}}" />
+        <azParam name="nsg-name" value="{{nsg-name}}" />
+        <azParam name="resource-group" value="{{aks-resource-group}}" />
+        <azParam name="priority" value="120" />
+        <azParam name="source-address-prefixes" value="AzureLoadBalancer" />
+        <azParam name="source-port-ranges" value="*" />
+        <azParam name="destination-address-prefixes" value="VirtualNetwork" />
+        <azParam name="destination-port-ranges" value="6390" />
+        <azParam name="direction" value="Inbound" />
+        <azParam name="access" value="Allow" />
+        <azParam name="protocol" value="Tcp" />
+        <azParam name="description" value="Azure Infrastructure Load Balancer (required for Premium service tier" />
+    </azCommand>
+    <azCommand  type="execute" name="az network nsg rule create">
+        <azParam name="name" value="{{nsg-rule-name-virtualnetwork-storage}}" />
+        <azParam name="nsg-name" value="{{nsg-name}}" />
+        <azParam name="resource-group" value="{{aks-resource-group}}" />
+        <azParam name="priority" value="100" />
+        <azParam name="source-address-prefixes" value="VirtualNetwork" />
+        <azParam name="source-port-ranges" value="*" />
+        <azParam name="destination-address-prefixes" value="Storage" />
+        <azParam name="destination-port-ranges" value="443" />
+        <azParam name="direction" value="Outbound" />
+        <azParam name="access" value="Allow" />
+        <azParam name="protocol" value="Tcp" />
+        <azParam name="description" value="Dependency on Azure Storage" />
+    </azCommand>
+    <azCommand  type="execute" name="az network nsg rule create">
+        <azParam name="name" value="{{nsg-rule-name-virtualnetwork-sql}}" />
+        <azParam name="nsg-name" value="{{nsg-name}}" />
+        <azParam name="resource-group" value="{{aks-resource-group}}" />
+        <azParam name="priority" value="110" />
+        <azParam name="source-address-prefixes" value="VirtualNetwork" />
+        <azParam name="source-port-ranges" value="*" />
+        <azParam name="destination-address-prefixes" value="SQL" />
+        <azParam name="destination-port-ranges" value="1433" />
+        <azParam name="direction" value="Outbound" />
+        <azParam name="access" value="Allow" />
+        <azParam name="protocol" value="Tcp" />
+        <azParam name="description" value="Access to Azure SQL endpoints" />
+    </azCommand>
+    <azCommand  type="execute" name="az network nsg rule create">
+        <azParam name="name" value="{{nsg-rule-name-virtualnetwork-azurekeyvault}}" />
+        <azParam name="nsg-name" value="{{nsg-name}}" />
+        <azParam name="resource-group" value="{{aks-resource-group}}" />
+        <azParam name="priority" value="120" />
+        <azParam name="source-address-prefixes" value="VirtualNetwork" />
+        <azParam name="source-port-ranges" value="*" />
+        <azParam name="destination-address-prefixes" value="AzureKeyVault" />
+        <azParam name="destination-port-ranges" value="443" />
+        <azParam name="direction" value="Outbound" />
+        <azParam name="access" value="Allow" />
+        <azParam name="protocol" value="Tcp" />
+        <azParam name="description" value="Access to Azure Key Vault" />
+    </azCommand>
+
     <azCommand  type="execute" name="az network vnet subnet create">
         <azParam name="name" value="{{snet-apim}}" />
         <azParam name="resource-group" value="{{aks-resource-group}}" />
         <azParam name="vnet-name" value="{{vnet}}" />
         <azParam name="address-prefixes" value="10.241.0.0/24" />
+        <azParam name="network-security-group" value="{{nsg-name}}" />
     </azCommand>
     <azCommand  type="query" name="az network vnet subnet show" output="{{apim-subnet-id}}">
-        <azParam name="resource-group" value="aks-resource-group" />
+        <azParam name="resource-group" value="{{aks-resource-group}}" />
         <azParam name="vnet-name" value="{{vnet}}" />
-        <azParam name="name" value="snet-apim" />
+        <azParam name="name" value="{{snet-apim}}" />
         <azParam name="query" value="id" />
         <azParam name="output" value="tsv" />
     </azCommand>

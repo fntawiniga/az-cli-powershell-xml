@@ -170,6 +170,14 @@ Class AzFactory {
                     $Command = (New-Object -TypeName "AzCommandResourceUpdate" -ArgumentList $Arguments)
                     Break
                 }
+                "az network nsg create" {
+                    $Command = (New-Object -TypeName "AzCommandNetworkNsgCreate" -ArgumentList $Arguments)
+                    Break
+                }
+                "az network nsg rule create" {
+                    $Command = (New-Object -TypeName "AzCommandNetworkNsgRuleCreate" -ArgumentList $Arguments)
+                    Break
+                }
                 Default: {
                     Throw("Command not supported")
                 }
@@ -762,6 +770,107 @@ Class AzCommandResourceUpdate : AzCommand {
         Else {
             Write-Log -Message "Azure Resource has been successfully updated" -LogFile $This.LogFile -Color "green"
         }    
+
+        Return $Variables
+    }
+}
+
+Class AzCommandNetworkNsgCreate : AzCommand {
+
+    AzCommandNetworkNsgCreate([String] $Type, [String] $Name, [String] $Output, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Name, $Output, $Params, $LogFile) {
+    }
+
+    [Hashtable] Execute([Hashtable] $Variables) {
+        $This.ReplaceParamsTokens($Variables)
+        
+        $NsgName = $This.FindParamValueByName("name")
+        $ResourceGroup = $This.FindParamValueByName("resource-group")
+
+        $CheckStr = "`r`n`$Name = `$(az network nsg show"
+        $CheckStr = $CheckStr + " ```r`n   --name `"" + $NsgName + "`""
+        $CheckStr = $CheckStr + " ```r`n   --resource-group `"" + $ResourceGroup + "`""
+        $CheckStr = $CheckStr + " ```r`n   --query name"
+        $CheckStr = $CheckStr + " ```r`n   --output tsv)"
+
+        Write-Log -Message $CheckStr -LogFile $This.LogFile -Color "green"
+
+        $Name = $Null
+        Invoke-Expression $CheckStr
+
+        If ($Name -eq $NsgName) {
+            Write-Log -Message "Azure Network Security Group $NsgName already exists" -LogFile $This.LogFile -Color "yellow"
+        }
+        Else {        
+            Write-Log -Message "Creating Azure Network Security Group $NsgName ..." -LogFile $This.LogFile -Color "green"
+
+            $CommandStr = $This.BuildCommand($False)        
+
+            Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
+        
+            $CommandStr = $CommandStr + "`r`n `$ErrorFound = `$?"
+
+            $ErrorFound = $False
+            Invoke-Expression $CommandStr
+
+            If (!$ErrorFound) {
+                Throw("Error creating Azure Network Security Group $($NsgName)")
+            }
+            Else {
+                Write-Log -Message "Azure Network Security Group $($NsgName) has been successfully created" -LogFile $This.LogFile -Color "green"
+            }              
+        }  
+
+        Return $Variables
+    }
+}
+
+
+Class AzCommandNetworkNsgRuleCreate : AzCommand {
+
+    AzCommandNetworkNsgRuleCreate([String] $Type, [String] $Name, [String] $Output, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Name, $Output, $Params, $LogFile) {
+    }
+
+    [Hashtable] Execute([Hashtable] $Variables) {
+        $This.ReplaceParamsTokens($Variables)
+        
+        $NsgName = $This.FindParamValueByName("nsg-name")
+        $NsgRuleName = $This.FindParamValueByName("name")
+        $ResourceGroup = $This.FindParamValueByName("resource-group")
+
+        $CheckStr = "`r`n`$Name = `$(az network nsg rule show"
+        $CheckStr = $CheckStr + " ```r`n   --name `"" + $NsgRuleName + "`""
+        $CheckStr = $CheckStr + " ```r`n   --nsg-name `"" + $NsgName + "`""
+        $CheckStr = $CheckStr + " ```r`n   --resource-group `"" + $ResourceGroup + "`""
+        $CheckStr = $CheckStr + " ```r`n   --query name"
+        $CheckStr = $CheckStr + " ```r`n   --output tsv)"
+
+        Write-Log -Message $CheckStr -LogFile $This.LogFile -Color "green"
+
+        $Name = $Null
+        Invoke-Expression $CheckStr
+
+        If ($Name -eq $NsgRuleName) {
+            Write-Log -Message "Azure Network Security Group Rule $NsgRuleName already exists" -LogFile $This.LogFile -Color "yellow"
+        }
+        Else {        
+            Write-Log -Message "Creating Azure Network Security Group Rule $NsgRuleName ..." -LogFile $This.LogFile -Color "green"
+
+            $CommandStr = $This.BuildCommand($False)        
+
+            Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
+        
+            $CommandStr = $CommandStr + "`r`n `$ErrorFound = `$?"
+
+            $ErrorFound = $False
+            Invoke-Expression $CommandStr
+
+            If (!$ErrorFound) {
+                Throw("Error creating Azure Network Security Group Rule $($NsgRuleName)")
+            }
+            Else {
+                Write-Log -Message "Azure Network Security Group Rule $($NsgRuleName) has been successfully created" -LogFile $This.LogFile -Color "green"
+            }              
+        }  
 
         Return $Variables
     }
