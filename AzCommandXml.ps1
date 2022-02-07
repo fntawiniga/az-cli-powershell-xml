@@ -178,6 +178,10 @@ Class AzFactory {
                     $Command = (New-Object -TypeName "AzCommandNetworkNsgRuleCreate" -ArgumentList $Arguments)
                     Break
                 }
+                "az network public-ip create" {
+                    $Command = (New-Object -TypeName "AzCommandNetworkPublicIpCreate" -ArgumentList $Arguments)
+                    Break
+                }
                 Default: {
                     Throw("Command not supported")
                 }
@@ -869,6 +873,55 @@ Class AzCommandNetworkNsgRuleCreate : AzCommand {
             }
             Else {
                 Write-Log -Message "Azure Network Security Group Rule $($NsgRuleName) has been successfully created" -LogFile $This.LogFile -Color "green"
+            }              
+        }  
+
+        Return $Variables
+    }
+}
+
+Class AzCommandNetworkPublicIpCreate : AzCommand {
+
+    AzCommandNetworkPublicIpCreate([String] $Type, [String] $Name, [String] $Output, [AzParam[]] $Params, [String] $LogFile) : base ($Type, $Name, $Output, $Params, $LogFile) {
+    }
+
+    [Hashtable] Execute([Hashtable] $Variables) {
+        $This.ReplaceParamsTokens($Variables)
+        
+        $PublicIPName = $This.FindParamValueByName("name")
+        $ResourceGroup = $This.FindParamValueByName("resource-group")
+
+        $CheckStr = "`r`n`$Name = `$(az network public-ip show"
+        $CheckStr = $CheckStr + " ```r`n   --name `"" + $PublicIPName + "`""
+        $CheckStr = $CheckStr + " ```r`n   --resource-group `"" + $ResourceGroup + "`""
+        $CheckStr = $CheckStr + " ```r`n   --query name"
+        $CheckStr = $CheckStr + " ```r`n   --output tsv)"
+
+        Write-Log -Message $CheckStr -LogFile $This.LogFile -Color "green"
+
+        $Name = $Null
+        Invoke-Expression $CheckStr
+
+        If ($Name -eq $PublicIPName) {
+            Write-Log -Message "Azure Network Public IP Address $PublicIPName already exists" -LogFile $This.LogFile -Color "yellow"
+        }
+        Else {        
+            Write-Log -Message "Creating Azure Network Public IP Address $PublicIPName ..." -LogFile $This.LogFile -Color "green"
+
+            $CommandStr = $This.BuildCommand($False)        
+
+            Write-Log -Message $CommandStr -LogFile $This.LogFile -Color "green"
+        
+            $CommandStr = $CommandStr + "`r`n `$ErrorFound = `$?"
+
+            $ErrorFound = $False
+            Invoke-Expression $CommandStr
+
+            If (!$ErrorFound) {
+                Throw("Error creating Azure Network Public IP Address $($PublicIPName)")
+            }
+            Else {
+                Write-Log -Message "Azure Network Public IP Address $($PublicIPName) has been successfully created" -LogFile $This.LogFile -Color "green"
             }              
         }  
 

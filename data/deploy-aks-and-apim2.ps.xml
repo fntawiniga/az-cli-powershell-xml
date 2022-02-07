@@ -241,5 +241,16 @@
         <azParam name="ids" value="{{apim-id}}" />
         <azParam name="set" value="properties.virtualNetworkConfiguration.subnetResourceId={{apim-subnet-id}}" />
     </azCommand>
+
+    <azCommand  type="execute" name="az network public-ip create">
+        <azParam name="name" value="{{ip-address}}" />
+        <azParam name="resource-group" value="{{aks-resource-group}}" />
+        <azParam name="location" value="{{location}}" />
+        <azParam name="allocation-method" value="Static" />
+        <azParam name="tier" value="Regional" />
+        <azParam name="version" value="IPv4" />
+        <azParam name="sku" value="Standard" />
+        <azParam name="dns-name" value="dnsname" />
+    </azCommand>
 </azCommands>
 
