@@ -37,17 +37,31 @@
     </azCommand>
 
     <azCommand  type="execute" name="az group create">
+        <azCheckExist compareWith="$True" name="az group exists">
+            <azParam name="name" value="{{resource-group}}" />
+        </azCheckExist>
         <azParam name="name" value="{{resource-group}}" />
         <azParam name="location" value="{{location}}" />
     </azCommand>
 
     <azCommand  type="execute" name="az keyvault create">
+        <azCheckExist compareWith="{{keyvault}}" name="az keyvault show">
+            <azParam name="name" value="{{keyvault}}" />
+            <azParam name="resource-group" value="{{resource-group}}" />
+            <azParam name="query" value="name" />
+            <azParam name="output" value="tsv" />
+        </azCheckExist>
         <azParam name="name" value="{{keyvault}}" />
         <azParam name="resource-group" value="{{resource-group}}" />
         <azParam name="location" value="{{location}}" />
     </azCommand>    
 
-    <azCommand  type="execute" name="az servicebus namespace create">
+    <azCommand  type="execute" name="az servicebus namespace create">    
+        <azCheckExist compareWith="false" name="az servicebus namespace exists">
+            <azParam name="name" value="{{sb-name}}" />
+            <azParam name="query" value="nameAvailable" />
+            <azParam name="output" value="tsv" />
+        </azCheckExist>
         <azParam name="name" value="{{sb-name}}" />
         <azParam name="resource-group" value="{{resource-group}}" />
         <azParam name="location" value="{{location}}" />
@@ -67,6 +81,9 @@
     </azCommand>
 
     <azCommand  type="execute" name="az cosmosdb create">
+        <azCheckExist compareWith="true" name="az cosmosdb check-name-exists">
+            <azParam name="name" value="{{cosmos-db-name}}" />
+        </azCheckExist>
         <azParam name="name" value="{{cosmos-db-name}}" />
         <azParam name="resource-group" value="{{resource-group}}" />
         <azParam name="kind" value="MongoDB" />
@@ -82,6 +99,12 @@
     </azCommand>
 
     <azCommand  type="execute" name="az acr create">
+        <azCheckExist compareWith="{{acr-name}}" name="az acr show">
+            <azParam name="name" value="{{acr-name}}" />
+            <azParam name="resource-group" value="{{resource-group}}" />
+            <azParam name="query" value="name" />
+            <azParam name="output" value="tsv" />
+        </azCheckExist>
         <azParam name="name" value="{{acr-name}}" />
         <azParam name="resource-group" value="{{resource-group}}" />
         <azParam name="location" value="{{location}}" />
@@ -94,6 +117,12 @@
         <azParam name="output" value="tsv" />
     </azCommand>
     <azCommand  type="execute" name="az aks create">
+        <azCheckExist compareWith="{{aks-name}}" name="az aks show">
+            <azParam name="name" value="{{aks-name}}" />
+            <azParam name="resource-group" value="{{resource-group}}" />
+            <azParam name="query" value="name" />
+            <azParam name="output" value="tsv" />
+        </azCheckExist>
         <azParam name="name" value="{{aks-name}}" />
         <azParam name="resource-group" value="{{resource-group}}" />
         <azParam name="location" value="{{location}}" />
@@ -113,6 +142,12 @@
         <azParam name="ssh-key-value" value="C:\Dev\Temp\aks-ssh-service.pub" />
     </azCommand>
     <azCommand  type="execute" name="az apim create">
+        <azCheckExist compareWith="{{apim-name}}" name="az apim show">
+            <azParam name="name" value="{{apim-name}}" />
+            <azParam name="resource-group" value="{{resource-group}}" />
+            <azParam name="query" value="name" />
+            <azParam name="output" value="tsv" />
+        </azCheckExist>
         <azParam name="name" value="{{apim-name}}" />
         <azParam name="resource-group" value="{{aks-resource-group}}" />
         <azParam name="location" value="{{location}}" />
@@ -134,11 +169,24 @@
     </azCommand>
 
     <azCommand  type="execute" name="az network nsg create">
+        <azCheckExist compareWith="{{nsg-name}}" name="az network nsg show">
+            <azParam name="name" value="{{nsg-name}}" />
+            <azParam name="resource-group" value="{{resource-group}}" />
+            <azParam name="query" value="name" />
+            <azParam name="output" value="tsv" />
+        </azCheckExist>
         <azParam name="name" value="{{nsg-name}}" />
         <azParam name="resource-group" value="{{aks-resource-group}}" />
         <azParam name="location" value="{{location}}" />
     </azCommand>
     <azCommand  type="execute" name="az network nsg rule create">
+        <azCheckExist compareWith="{{nsg-rule-name-internet-virtualnetwork}}" name="az network nsg rule show">
+            <azParam name="name" value="{{nsg-rule-name-internet-virtualnetwork}}" />
+            <azParam name="resource-group" value="{{resource-group}}" />
+            <azParam name="nsg-name" value="{{nsg-name}}" />
+            <azParam name="query" value="name" />
+            <azParam name="output" value="tsv" />
+        </azCheckExist>
         <azParam name="name" value="{{nsg-rule-name-internet-virtualnetwork}}" />
         <azParam name="nsg-name" value="{{nsg-name}}" />
         <azParam name="resource-group" value="{{aks-resource-group}}" />
@@ -153,6 +201,13 @@
         <azParam name="description" value="Client communication to API Management" />
     </azCommand>
     <azCommand  type="execute" name="az network nsg rule create">
+        <azCheckExist compareWith="{{nsg-rule-name-apimanagement-virtualnetwork}}" name="az network nsg rule show">
+            <azParam name="name" value="{{nsg-rule-name-apimanagement-virtualnetwork}}" />
+            <azParam name="resource-group" value="{{resource-group}}" />
+            <azParam name="nsg-name" value="{{nsg-name}}" />
+            <azParam name="query" value="name" />
+            <azParam name="output" value="tsv" />
+        </azCheckExist>
         <azParam name="name" value="{{nsg-rule-name-apimanagement-virtualnetwork}}" />
         <azParam name="nsg-name" value="{{nsg-name}}" />
         <azParam name="resource-group" value="{{aks-resource-group}}" />
@@ -167,6 +222,13 @@
         <azParam name="description" value="Management endpoint for Azure portal and PowerShell" />
     </azCommand>
     <azCommand  type="execute" name="az network nsg rule create">
+        <azCheckExist compareWith="{{nsg-rule-name-azureloadbalancer-virtualnetwork}}" name="az network nsg rule show">
+            <azParam name="name" value="{{nsg-rule-name-azureloadbalancer-virtualnetwork}}" />
+            <azParam name="resource-group" value="{{resource-group}}" />
+            <azParam name="nsg-name" value="{{nsg-name}}" />
+            <azParam name="query" value="name" />
+            <azParam name="output" value="tsv" />
+        </azCheckExist>
         <azParam name="name" value="{{nsg-rule-name-azureloadbalancer-virtualnetwork}}" />
         <azParam name="nsg-name" value="{{nsg-name}}" />
         <azParam name="resource-group" value="{{aks-resource-group}}" />
@@ -181,6 +243,13 @@
         <azParam name="description" value="Azure Infrastructure Load Balancer (required for Premium service tier" />
     </azCommand>
     <azCommand  type="execute" name="az network nsg rule create">
+        <azCheckExist compareWith="{{nsg-rule-name-internet-virtualnetwork}}" name="az network nsg rule show">
+            <azParam name="name" value="{{nsg-rule-name-internet-virtualnetwork}}" />
+            <azParam name="resource-group" value="{{resource-group}}" />
+            <azParam name="nsg-name" value="{{nsg-name}}" />
+            <azParam name="query" value="name" />
+            <azParam name="output" value="tsv" />
+        </azCheckExist>
         <azParam name="name" value="{{nsg-rule-name-virtualnetwork-storage}}" />
         <azParam name="nsg-name" value="{{nsg-name}}" />
         <azParam name="resource-group" value="{{aks-resource-group}}" />
@@ -195,6 +264,13 @@
         <azParam name="description" value="Dependency on Azure Storage" />
     </azCommand>
     <azCommand  type="execute" name="az network nsg rule create">
+        <azCheckExist compareWith="{{nsg-rule-name-virtualnetwork-storage}}" name="az network nsg rule show">
+            <azParam name="name" value="{{nsg-rule-name-internet-virtualnetwork}}" />
+            <azParam name="resource-group" value="{{resource-group}}" />
+            <azParam name="nsg-name" value="{{nsg-name}}" />
+            <azParam name="query" value="name" />
+            <azParam name="output" value="tsv" />
+        </azCheckExist>
         <azParam name="name" value="{{nsg-rule-name-virtualnetwork-sql}}" />
         <azParam name="nsg-name" value="{{nsg-name}}" />
         <azParam name="resource-group" value="{{aks-resource-group}}" />
@@ -209,6 +285,13 @@
         <azParam name="description" value="Access to Azure SQL endpoints" />
     </azCommand>
     <azCommand  type="execute" name="az network nsg rule create">
+        <azCheckExist compareWith="{{nsg-rule-name-virtualnetwork-azurekeyvault}}" name="az network nsg rule show">
+            <azParam name="name" value="{{nsg-rule-name-internet-virtualnetwork}}" />
+            <azParam name="resource-group" value="{{resource-group}}" />
+            <azParam name="nsg-name" value="{{nsg-name}}" />
+            <azParam name="query" value="name" />
+            <azParam name="output" value="tsv" />
+        </azCheckExist>
         <azParam name="name" value="{{nsg-rule-name-virtualnetwork-azurekeyvault}}" />
         <azParam name="nsg-name" value="{{nsg-name}}" />
         <azParam name="resource-group" value="{{aks-resource-group}}" />
@@ -224,6 +307,13 @@
     </azCommand>
 
     <azCommand  type="execute" name="az network vnet subnet create">
+        <azCheckExist compareWith="{{snet-apim}}" name="az network vnet subnet show">
+            <azParam name="name" value="{{snet-apim}}" />
+            <azParam name="resource-group" value="{{resource-group}}" />
+            <azParam name="vnet-name" value="{{vnet}}" />
+            <azParam name="query" value="name" />
+            <azParam name="output" value="tsv" />
+        </azCheckExist>
         <azParam name="name" value="{{snet-apim}}" />
         <azParam name="resource-group" value="{{aks-resource-group}}" />
         <azParam name="vnet-name" value="{{vnet}}" />
@@ -243,6 +333,12 @@
     </azCommand>
 
     <azCommand  type="execute" name="az network public-ip create">
+        <azCheckExist compareWith="{{ip-address}}" name="az network public-ip show">
+            <azParam name="name" value="{{ip-address}}" />
+            <azParam name="resource-group" value="{{resource-group}}" />
+            <azParam name="query" value="name" />
+            <azParam name="output" value="tsv" />
+        </azCheckExist>
         <azParam name="name" value="{{ip-address}}" />
         <azParam name="resource-group" value="{{aks-resource-group}}" />
         <azParam name="location" value="{{location}}" />
