@@ -137,6 +137,9 @@
         <azParam name="dns-service-ip" value="10.0.0.10" />
         <azParam name="docker-bridge-address" value="172.17.0.1/16" /-->
         <azParam name="node-vm-size" value="Standard_B2s" />
+        <azParam name="enable-cluster-autoscaler" value="true" />
+        <azParam name="max-count" value="5" />
+        <azParam name="min-count" value="1" />
         <azParam name="enable-addons" value="monitoring" />
         <azParam name="attach-acr" value="{{acr-name}}" />
         <azParam name="ssh-key-value" value="C:\Dev\Temp\aks-ssh-service.pub" />
